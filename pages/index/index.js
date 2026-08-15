@@ -2,7 +2,9 @@ import wx from 'wx';
 import { CAPTURE_INTERVAL_MS } from '../../config/config.js';
 import { releaseCamera, takePhoto } from '../../services/camera-service.js';
 import { analyzePhoto, destroyVisionSession } from '../../services/vision-service.js';
-import { saveObservation } from '../../services/memory-service.js';
+import { loadObservations, saveObservation } from '../../services/memory-service.js';
+import { buildSearchResult, findLastSeen } from '../../services/search-service.js';
+import { recognizeOnce, stopRecognition } from '../../services/speech-service.js';
 import { makeObservationId } from '../../utils/time.js';
 
 const OBSERVATIONS_KEY = 'magic-glass.observations';
@@ -47,11 +49,13 @@ export default {
     focusableCount: 2,
     activeItemId: '',
     captureInProgress: false,
+    isListening: false,
   },
 
   onLoad() {
     this.enteredNavigationThisPress = false;
     this.captureTimer = null;
+    this.recognition = null;
     this.pageActive = true;
     this.refreshItems();
   },
@@ -65,11 +69,13 @@ export default {
   onHide() {
     this.pageActive = false;
     this.stopCaptureTimer();
+    this.stopVoiceSearch();
   },
 
   onUnload() {
     this.pageActive = false;
     this.stopCaptureTimer();
+    this.stopVoiceSearch();
     destroyVisionSession();
     releaseCamera();
   },
@@ -162,7 +168,7 @@ export default {
   },
 
   async captureAndRemember() {
-    if (!this.pageActive || !this.data.isMemoryActive || this.data.captureInProgress) return;
+    if (!this.pageActive || !this.data.isMemoryActive || this.data.captureInProgress || this.data.isListening) return;
     this.setData({
       captureInProgress: true,
       statusText: '正在拍照',
@@ -202,7 +208,62 @@ export default {
   },
 
   findItem() {
-    this.setData({ statusText: '查找物品' });
+    if (this.data.isListening) return;
+    if (this.data.captureInProgress) {
+      this.setData({ statusText: '正在记录物品，请稍后查找' });
+      return;
+    }
+
+    try {
+      this.recognition = recognizeOnce({
+        onStart: () => {
+          this.setData({
+            isListening: true,
+            statusText: '请说出物品名称',
+          });
+        },
+        onResult: (transcript) => {
+          this.showItemLocation(transcript);
+        },
+        onError: (message) => {
+          this.setData({
+            isListening: false,
+            statusText: message ? `语音识别失败：${message}` : '语音识别失败',
+          });
+        },
+        onEnd: () => {
+          this.recognition = null;
+          this.setData({ isListening: false });
+        },
+      });
+    } catch (error) {
+      this.recognition = null;
+      this.setData({
+        isListening: false,
+        statusText: error && error.message ? error.message : '语音识别暂时不可用',
+      });
+    }
+  },
+
+  showItemLocation(transcript) {
+    const query = typeof transcript === 'string' ? transcript.trim() : '';
+    if (!query) {
+      this.setData({ statusText: '没有听清物品名称' });
+      return;
+    }
+
+    const result = buildSearchResult(findLastSeen(loadObservations(), query), query);
+    this.setData({
+      statusText: result.found
+        ? `${result.name}：${result.location} · ${result.detail}`
+        : `没有${result.name}的位置记录`,
+    });
+  },
+
+  stopVoiceSearch() {
+    stopRecognition(this.recognition);
+    this.recognition = null;
+    if (this.data.isListening) this.setData({ isListening: false });
   },
 
   selectItem(event) {

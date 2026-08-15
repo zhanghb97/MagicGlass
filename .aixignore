@@ -7,7 +7,5 @@ tests/
 node_modules/
 package.json
 services/mock-service.js
-services/search-service.js
-services/speech-service.js
 *.aix
 npm-debug.log*

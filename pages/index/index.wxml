@@ -13,7 +13,7 @@
       <button
         class="nav-button {{focusIndex === 1 ? 'focused' : ''}}"
         bindtap="findItem"
-      >查找物品</button>
+      >{{isListening ? '正在聆听' : '查找物品'}}</button>
     </view>
 
     <view class="section-label">RECENT ITEMS</view>
