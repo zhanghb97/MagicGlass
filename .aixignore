@@ -6,5 +6,8 @@ USER_GUIDE.md
 tests/
 node_modules/
 package.json
+config/
+services/
+utils/
 *.aix
 npm-debug.log*
