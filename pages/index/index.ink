@@ -159,7 +159,15 @@ export default {
   },
 
   searchRecent(event) {
-    this.setData({ query: event.currentTarget.dataset.name || '' });
+    const target = event && event.currentTarget;
+    const attributes = (target && target.attributes) || {};
+    const dataset = (target && target.dataset) || {};
+    const name = attributes['data-name'] || dataset.name || '';
+    if (!name) {
+      this.setData({ statusMessage: '没有读取到物品名称，请重试' });
+      return;
+    }
+    this.setData({ query: name });
     setTimeout(() => this.search(), 0);
   },
 
@@ -220,18 +228,20 @@ export default {
       <view><text class="stat-number">{{itemCount}}</text><text class="stat-label">个物品</text></view>
     </view>
 
-    <view class="actions">
-      <button class="button primary" bindtap="toggleMemory">{{memoryEnabled ? '停止记忆' : '开始记忆'}}</button>
-      <button class="button secondary" bindtap="observeNow" disabled="{{pipelineState !== 'idle'}}">{{pipelineState === 'idle' ? '立即观察' : '观察中…'}}</button>
+    <view class="actions" role="navigation">
+      <button class="button primary" tabindex="0" bindtap="toggleMemory">{{memoryEnabled ? '停止记忆' : '开始记忆'}}</button>
+      <button class="button secondary" tabindex="1" bindtap="observeNow" disabled="{{pipelineState !== 'idle'}}">{{pipelineState === 'idle' ? '立即观察' : '观察中…'}}</button>
     </view>
 
     <view class="search-card">
       <text class="section-title">找东西</text>
-      <view class="search-row">
-        <input class="query" value="{{query}}" placeholder="钥匙在哪里？" bindinput="onQueryInput" bindconfirm="search" />
-        <button class="voice" bindtap="startVoiceSearch">{{listening ? '聆听中' : '语音'}}</button>
+      <view class="search-row" role="navigation">
+        <input class="query" tabindex="2" value="{{query}}" placeholder="钥匙在哪里？" bindinput="onQueryInput" bindconfirm="search" />
+        <button class="voice" tabindex="3" bindtap="startVoiceSearch">{{listening ? '聆听中' : '语音'}}</button>
       </view>
-      <button class="search-button" bindtap="search">查找最近位置</button>
+      <view role="navigation">
+        <button class="search-button" tabindex="4" bindtap="search">查找最近位置</button>
+      </view>
     </view>
 
     <view class="result-card found-{{result && result.found}}" ink:if="{{result}}">
@@ -243,10 +253,10 @@ export default {
       <text class="result-tip">{{result.found ? result.tip : result.speech}}</text>
     </view>
 
-    <view class="recent-section">
+    <view class="recent-section" role="navigation">
       <text class="section-title">最近看到</text>
       <text class="empty" ink:if="{{recent.length === 0}}">还没有视觉记忆，试试“立即观察”</text>
-      <button class="recent-item" ink:for="{{recent}}" ink:key="name" data-name="{{item.name}}" bindtap="searchRecent">
+      <button class="recent-item" ink:for="{{recent}}" ink:key="name" tabindex="{{10 + index}}" data-name="{{item.name}}" bindtap="searchRecent">
         <view><text class="item-name">{{item.name}}</text><text class="item-place">{{item.scene}} · {{item.placeHint}}</text></view>
         <text class="item-time">{{item.timeText}}</text>
       </button>
@@ -256,9 +266,9 @@ export default {
       <text class="debug-title">DEBUG</text>
       <text class="debug-line">{{capabilities}}</text>
       <text class="debug-line">State {{pipelineState}} · Captures {{captureCount}} · Last {{lastInferenceMs}}ms</text>
-      <view class="debug-actions">
-        <button class="tiny-button" bindtap="loadDemo">载入隔离演示数据</button>
-        <button class="tiny-button danger" bindtap="requestClear">{{clearPending ? '再次点击确认清空' : '清空真实记忆'}}</button>
+      <view class="debug-actions" role="navigation">
+        <button class="tiny-button" tabindex="20" bindtap="loadDemo">载入隔离演示数据</button>
+        <button class="tiny-button danger" tabindex="21" bindtap="requestClear">{{clearPending ? '再次点击确认清空' : '清空真实记忆'}}</button>
       </view>
     </view>
   </view>
@@ -281,6 +291,8 @@ export default {
 .divider { width: 1px; height: 28px; background: rgba(255,255,255,.12); }
 .actions, .search-row, .debug-actions { display: flex; gap: 10px; }
 .button { flex: 1; height: 44px; border-radius: 22px; font-size: 15px; border: 0; }
+button:focus, input:focus { outline: 3px solid #ffffff; outline-offset: 3px; transform: scale(1.025); }
+button:active { opacity: .78; }
 .primary { background: #5df29f; color: #052015; font-weight: 700; }
 .secondary { background: rgba(255,255,255,.1); color: #f4fff9; border: 1px solid rgba(255,255,255,.15); }
 .search-card, .result-card, .debug-card { display: flex; flex-direction: column; gap: 11px; padding: 16px; border-radius: 16px; background: rgba(255,255,255,.055); border: 1px solid rgba(255,255,255,.1); }
