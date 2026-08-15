@@ -1,15 +1,46 @@
 <view class="container">
-  <card class="status-card" role="group">
-    <view class="status-label">当前状态</view>
-    <view class="status-text">{{statusText}}</view>
-  </card>
+  <card class="main-card" role="navigation">
+    <view class="status-panel">
+      <view class="status-label">CURRENT STATUS</view>
+      <view class="status-text">{{statusText}}</view>
+    </view>
 
-  <view class="nav-list">
-    <view class="nav-item">
-      <button class="nav-button" bindtap="startMemory" tabindex="0">开始记忆</button>
+    <view class="button-row">
+      <button
+        class="nav-button {{focusIndex === 0 ? 'focused' : ''}}"
+        bindtap="toggleMemory"
+      >{{memoryButtonText}}</button>
+      <button
+        class="nav-button {{focusIndex === 1 ? 'focused' : ''}}"
+        bindtap="findItem"
+      >查找物品</button>
     </view>
-    <view class="nav-item">
-      <button class="nav-button" bindtap="findItem" tabindex="1">查找物品</button>
+
+    <view class="section-label">RECENT ITEMS</view>
+
+    <view class="empty-state" ink:if="{{recentItems.length === 0}}">
+      暂无物品记录
     </view>
-  </view>
+
+    <scroll-view
+      class="item-list"
+      scroll-y="true"
+      scroll-into-view="{{activeItemId}}"
+      ink:if="{{recentItems.length > 0}}"
+    >
+      <view
+        id="item-{{index}}"
+        class="item-row {{focusIndex === index + 2 ? 'focused' : ''}}"
+        ink:for="{{recentItems}}"
+        ink:key="name"
+        data-index="{{index}}"
+        bindtap="selectItem"
+      >
+        <view class="item-name">{{item.name}}</view>
+        <view class="item-place">{{item.place}}</view>
+      </view>
+    </scroll-view>
+
+    <view class="navigation-hint">ENTER 进入/确认 · UP/DOWN 移动 · BACK 返回</view>
+  </card>
 </view>
