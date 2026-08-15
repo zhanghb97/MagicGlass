@@ -33,14 +33,10 @@
   color: var(--color-primary);
 }
 
-.nav-card {
+.nav-list {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 16px;
-  border-radius: var(--radius-md, 16px);
-  background-color: var(--color-surface);
-  border: var(--border-width-thin, 1px) solid var(--border-color-default);
 }
 
 .nav-item {
