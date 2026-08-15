@@ -1,0 +1,16 @@
+<view class="container">
+  <view class="status-card">
+    <view class="status-label">当前状态</view>
+    <view class="status-text">{{statusText}}</view>
+  </view>
+
+  <view class="nav-list">
+    <view class="nav-item">
+      <button class="nav-button" bindtap="startMemory" tabindex="0">开始记忆</button>
+    </view>
+    <view class="nav-item">
+      <button class="nav-button" bindtap="findItem" tabindex="1">查找物品</button>
+    </view>
+  </view>
+</view>
+

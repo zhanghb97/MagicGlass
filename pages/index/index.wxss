@@ -1,0 +1,56 @@
+.container {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 28px;
+  padding: 32px;
+  box-sizing: border-box;
+  background-color: #07100d;
+  color: #ffffff;
+}
+
+.status-card {
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border-radius: 16px;
+  background-color: #13251d;
+  border: 1px solid #315342;
+}
+
+.status-label {
+  font-size: 14px;
+  color: #9db5a9;
+}
+
+.status-text {
+  font-size: 28px;
+  font-weight: 700;
+  color: #65f2a1;
+}
+
+.nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.nav-item {
+  width: 100%;
+}
+
+.nav-button {
+  width: 100%;
+  height: 56px;
+  border-radius: 12px;
+  border: 2px solid #ffffff;
+  background-color: #ffffff;
+  color: #07100d;
+  font-size: 18px;
+  font-weight: 700;
+}
+
