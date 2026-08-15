@@ -1,0 +1,9 @@
+page {
+  background: #07100d;
+  color: #f4fff9;
+}
+
+button {
+  font-family: inherit;
+}
+

@@ -1,0 +1,4 @@
+node_modules/
+*.aix
+npm-debug.log*
+

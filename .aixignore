@@ -1,0 +1,9 @@
+.git/
+.gitignore
+Requirements.md
+USER_GUIDE.md
+tests/
+node_modules/
+package.json
+*.aix
+npm-debug.log*

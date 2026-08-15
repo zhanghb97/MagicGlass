@@ -1,0 +1,12 @@
+{
+  "pages": [
+    "pages/index/index"
+  ],
+  "window": {
+    "navigationBarTitleText": "魔镜",
+    "viewport": {
+      "width": "device-width"
+    }
+  }
+}
+
