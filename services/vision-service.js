@@ -1,4 +1,5 @@
 import wx from 'wx';
+import { LanguageModel } from 'language-model';
 import { parseVisionResult } from '../utils/json.js';
 
 export const visionPrompt = `你是视觉记忆提取器。分析照片，只记录用户之后可能寻找的、画面中清晰可见的物品。
@@ -57,4 +58,3 @@ export function destroyVisionSession() {
   }
   session = null;
 }
-

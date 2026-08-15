@@ -1,4 +1,9 @@
 import wx from 'wx';
+import { CAPTURE_INTERVAL_MS } from '../../config/config.js';
+import { releaseCamera, takePhoto } from '../../services/camera-service.js';
+import { analyzePhoto, destroyVisionSession } from '../../services/vision-service.js';
+import { saveObservation } from '../../services/memory-service.js';
+import { makeObservationId } from '../../utils/time.js';
 
 const OBSERVATIONS_KEY = 'magic-glass.observations';
 
@@ -41,15 +46,32 @@ export default {
     focusIndex: -1,
     focusableCount: 2,
     activeItemId: '',
+    captureInProgress: false,
   },
 
   onLoad() {
     this.enteredNavigationThisPress = false;
+    this.captureTimer = null;
+    this.pageActive = true;
     this.refreshItems();
   },
 
   onShow() {
+    this.pageActive = true;
     this.refreshItems();
+    if (this.data.isMemoryActive) this.startCaptureTimer();
+  },
+
+  onHide() {
+    this.pageActive = false;
+    this.stopCaptureTimer();
+  },
+
+  onUnload() {
+    this.pageActive = false;
+    this.stopCaptureTimer();
+    destroyVisionSession();
+    releaseCamera();
   },
 
   refreshItems() {
@@ -119,6 +141,64 @@ export default {
       memoryButtonText: isMemoryActive ? '停止记忆' : '开始记忆',
       statusText: isMemoryActive ? '开始记忆' : '停止记忆',
     });
+    if (isMemoryActive) {
+      this.captureAndRemember();
+      this.startCaptureTimer();
+    } else {
+      this.stopCaptureTimer();
+    }
+  },
+
+  startCaptureTimer() {
+    if (!this.pageActive || this.captureTimer) return;
+    this.captureTimer = setInterval(() => {
+      this.captureAndRemember();
+    }, CAPTURE_INTERVAL_MS);
+  },
+
+  stopCaptureTimer() {
+    if (this.captureTimer) clearInterval(this.captureTimer);
+    this.captureTimer = null;
+  },
+
+  async captureAndRemember() {
+    if (!this.pageActive || !this.data.isMemoryActive || this.data.captureInProgress) return;
+    this.setData({
+      captureInProgress: true,
+      statusText: '正在拍照',
+    });
+
+    try {
+      const photo = await takePhoto();
+      if (!this.pageActive || !this.data.isMemoryActive) return;
+      this.setData({ statusText: '正在识别物品' });
+
+      const visual = await analyzePhoto(photo);
+      if (!this.pageActive || !this.data.isMemoryActive) return;
+
+      saveObservation({
+        id: makeObservationId(),
+        timestamp: Date.now(),
+        scene: visual.scene,
+        placeHint: visual.placeHint,
+        summary: visual.summary,
+        location: null,
+        items: visual.items,
+      });
+      this.refreshItems();
+      this.setData({
+        statusText: visual.items.length > 0
+          ? `记录到 ${visual.items.length} 个物品`
+          : '没有识别到物品',
+      });
+    } catch (error) {
+      console.error('[MagicGlass] capture failed', error);
+      this.setData({
+        statusText: error && error.message ? error.message : '观察失败，30秒后重试',
+      });
+    } finally {
+      this.setData({ captureInProgress: false });
+    }
   },
 
   findItem() {
@@ -143,4 +223,3 @@ export default {
     });
   },
 };
-
