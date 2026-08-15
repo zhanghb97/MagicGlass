@@ -1,6 +1,7 @@
 .git/
 .gitignore
 Requirements.md
+README.md
 USER_GUIDE.md
 tests/
 node_modules/

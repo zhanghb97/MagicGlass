@@ -37,6 +37,7 @@ export default {
     capabilities: '检测中…',
     captureCount: 0,
     lastInferenceMs: 0,
+    focusedKey: '',
   },
 
   async onLoad() {
@@ -77,7 +78,11 @@ export default {
   },
 
   refreshMemory(observations) {
-    const recent = recentItems(observations).map((item) => ({ ...item, timeText: relativeTime(item.timestamp) }));
+    const recent = recentItems(observations).map((item, index) => ({
+      ...item,
+      focusKey: `recent-${index}`,
+      timeText: relativeTime(item.timestamp),
+    }));
     const itemCount = observations.reduce((sum, observation) => sum + (observation.items || []).length, 0);
     this.setData({ observations, recent, observationCount: observations.length, itemCount });
   },
@@ -146,6 +151,25 @@ export default {
     this.setData({ query: event.currentTarget.value || '' });
   },
 
+  controlKey(event) {
+    const target = event && event.currentTarget;
+    const attributes = (target && target.attributes) || {};
+    const dataset = (target && target.dataset) || {};
+    return attributes['data-focus-key'] || dataset.focusKey || '';
+  },
+
+  onControlFocus(event) {
+    const focusedKey = this.controlKey(event);
+    this.setData({ focusedKey });
+  },
+
+  onControlBlur(event) {
+    const focusedKey = this.controlKey(event);
+    if (!focusedKey || this.data.focusedKey === focusedKey) {
+      this.setData({ focusedKey: '' });
+    }
+  },
+
   search() {
     const query = this.data.query;
     if (!String(query || '').trim()) {
@@ -211,7 +235,7 @@ export default {
 </script>
 
 <page>
-  <view class="shell">
+  <view class="shell" role="navigation">
     <view class="hero">
       <text class="brand">魔镜</text>
       <text class="tagline">让你永远找到东西</text>
@@ -228,19 +252,19 @@ export default {
       <view><text class="stat-number">{{itemCount}}</text><text class="stat-label">个物品</text></view>
     </view>
 
-    <view class="actions" role="navigation">
-      <button class="button primary" tabindex="0" bindtap="toggleMemory">{{memoryEnabled ? '停止记忆' : '开始记忆'}}</button>
-      <button class="button secondary" tabindex="1" bindtap="observeNow" disabled="{{pipelineState !== 'idle'}}">{{pipelineState === 'idle' ? '立即观察' : '观察中…'}}</button>
+    <view class="actions">
+      <button class="button primary {{focusedKey === 'memory' ? 'is-focused' : ''}}" tabindex="0" data-focus-key="memory" bindfocus="onControlFocus" bindblur="onControlBlur" bindtap="toggleMemory">{{memoryEnabled ? '停止记忆' : '开始记忆'}}</button>
+      <button class="button secondary {{focusedKey === 'observe' ? 'is-focused' : ''}}" tabindex="1" data-focus-key="observe" bindfocus="onControlFocus" bindblur="onControlBlur" bindtap="observeNow" disabled="{{pipelineState !== 'idle'}}">{{pipelineState === 'idle' ? '立即观察' : '观察中…'}}</button>
     </view>
 
     <view class="search-card">
       <text class="section-title">找东西</text>
-      <view class="search-row" role="navigation">
-        <input class="query" tabindex="2" value="{{query}}" placeholder="钥匙在哪里？" bindinput="onQueryInput" bindconfirm="search" />
-        <button class="voice" tabindex="3" bindtap="startVoiceSearch">{{listening ? '聆听中' : '语音'}}</button>
+      <view class="search-row">
+        <input class="query {{focusedKey === 'query' ? 'is-focused' : ''}}" tabindex="2" data-focus-key="query" value="{{query}}" placeholder="钥匙在哪里？" bindfocus="onControlFocus" bindblur="onControlBlur" bindinput="onQueryInput" bindconfirm="search" />
+        <button class="voice {{focusedKey === 'voice' ? 'is-focused' : ''}}" tabindex="3" data-focus-key="voice" bindfocus="onControlFocus" bindblur="onControlBlur" bindtap="startVoiceSearch">{{listening ? '聆听中' : '语音'}}</button>
       </view>
-      <view role="navigation">
-        <button class="search-button" tabindex="4" bindtap="search">查找最近位置</button>
+      <view>
+        <button class="search-button {{focusedKey === 'search' ? 'is-focused' : ''}}" tabindex="4" data-focus-key="search" bindfocus="onControlFocus" bindblur="onControlBlur" bindtap="search">查找最近位置</button>
       </view>
     </view>
 
@@ -253,10 +277,10 @@ export default {
       <text class="result-tip">{{result.found ? result.tip : result.speech}}</text>
     </view>
 
-    <view class="recent-section" role="navigation">
+    <view class="recent-section">
       <text class="section-title">最近看到</text>
       <text class="empty" ink:if="{{recent.length === 0}}">还没有视觉记忆，试试“立即观察”</text>
-      <button class="recent-item" ink:for="{{recent}}" ink:key="name" tabindex="{{10 + index}}" data-name="{{item.name}}" bindtap="searchRecent">
+      <button class="recent-item {{focusedKey === item.focusKey ? 'is-focused' : ''}}" ink:for="{{recent}}" ink:key="name" tabindex="{{10 + index}}" data-focus-key="{{item.focusKey}}" data-name="{{item.name}}" bindfocus="onControlFocus" bindblur="onControlBlur" bindtap="searchRecent">
         <view><text class="item-name">{{item.name}}</text><text class="item-place">{{item.scene}} · {{item.placeHint}}</text></view>
         <text class="item-time">{{item.timeText}}</text>
       </button>
@@ -266,9 +290,9 @@ export default {
       <text class="debug-title">DEBUG</text>
       <text class="debug-line">{{capabilities}}</text>
       <text class="debug-line">State {{pipelineState}} · Captures {{captureCount}} · Last {{lastInferenceMs}}ms</text>
-      <view class="debug-actions" role="navigation">
-        <button class="tiny-button" tabindex="20" bindtap="loadDemo">载入隔离演示数据</button>
-        <button class="tiny-button danger" tabindex="21" bindtap="requestClear">{{clearPending ? '再次点击确认清空' : '清空真实记忆'}}</button>
+      <view class="debug-actions">
+        <button class="tiny-button {{focusedKey === 'demo' ? 'is-focused' : ''}}" tabindex="20" data-focus-key="demo" bindfocus="onControlFocus" bindblur="onControlBlur" bindtap="loadDemo">载入隔离演示数据</button>
+        <button class="tiny-button danger {{focusedKey === 'clear' ? 'is-focused' : ''}}" tabindex="21" data-focus-key="clear" bindfocus="onControlFocus" bindblur="onControlBlur" bindtap="requestClear">{{clearPending ? '再次点击确认清空' : '清空真实记忆'}}</button>
       </view>
     </view>
   </view>
@@ -291,7 +315,7 @@ export default {
 .divider { width: 1px; height: 28px; background: rgba(255,255,255,.12); }
 .actions, .search-row, .debug-actions { display: flex; gap: 10px; }
 .button { flex: 1; height: 44px; border-radius: 22px; font-size: 15px; border: 0; }
-button:focus, input:focus { outline: 3px solid #ffffff; outline-offset: 3px; transform: scale(1.025); }
+.is-focused { outline: 3px solid #ffffff; outline-offset: 3px; transform: scale(1.025); box-shadow: 0 0 18px rgba(255,255,255,.4); }
 button:active { opacity: .78; }
 .primary { background: #5df29f; color: #052015; font-weight: 700; }
 .secondary { background: rgba(255,255,255,.1); color: #f4fff9; border: 1px solid rgba(255,255,255,.15); }

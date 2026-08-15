@@ -1,4 +1,4 @@
-# 魔镜 MagicGlass v0.1.1 用户指南
+# 魔镜 MagicGlass v0.1.2 用户指南
 
 ## 它能做什么
 

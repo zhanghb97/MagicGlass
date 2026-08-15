@@ -10,7 +10,7 @@ MagicGlass 会返回最近一次可靠观察到钥匙的位置，并给出简短
 
 ## Demo 能力
 
-当前版本：**v0.1.1**
+当前版本：**v0.1.2**
 
 - 手动立即观察
 - 前台每 30 秒周期观察
@@ -157,14 +157,14 @@ npm test
 
 ```bash
 npx --yes --package=node@20 --package=@yodaos-pkg/aix-cli \
-  aix pack . -o MagicGlass-v0.1.1.aix
+  aix pack . -o MagicGlass-v0.1.2.aix
 ```
 
 查看包内容：
 
 ```bash
 npx --yes --package=node@20 --package=@yodaos-pkg/aix-cli \
-  aix list MagicGlass-v0.1.1.aix
+  aix list MagicGlass-v0.1.2.aix
 ```
 
 `.aixignore` 会排除需求文档、测试、npm 开发配置和旧 AIX 文件，避免无关内容进入眼镜安装包。
@@ -218,4 +218,3 @@ MOCK_MODE = false
 MagicGlass 不是一个功能庞杂的聊天机器人，而是一件安静的视觉记忆工具：
 
 > 它一直安静地替我记着，我需要的时候它就知道。
-
