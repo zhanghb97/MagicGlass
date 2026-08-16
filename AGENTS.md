@@ -4,7 +4,7 @@
 
 - **Name**: 魔镜
 - **English Name**: MagicGlass
-- **Version**: 0.3.4
+- **Version**: 0.3.5
 - **Description**: 运行于 Rokid Glasses 上的视觉记忆助手。
 
 ## Capabilities

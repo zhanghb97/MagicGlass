@@ -9,6 +9,16 @@ import { makeObservationId, relativeTime } from '../../utils/time.js';
 
 const OBSERVATIONS_KEY = 'magic-glass.observations';
 
+function makeDisplayItem(observation, item) {
+  return {
+    name: typeof item.name === 'string' ? item.name.trim() : '',
+    place: [observation.scene, observation.placeHint].filter(Boolean).join(' · ') || '位置未知',
+    relativeLocation: item.relativeLocation || '没有具体位置描述',
+    description: item.description || '',
+    timestamp: observation.timestamp,
+  };
+}
+
 function readRecentItems() {
   try {
     const observations = wx.getStorageSync(OBSERVATIONS_KEY);
@@ -25,13 +35,7 @@ function readRecentItems() {
         const name = typeof item.name === 'string' ? item.name.trim() : '';
         if (!name || names.has(name)) continue;
         names.add(name);
-        items.push({
-          name,
-          place: [observation.scene, observation.placeHint].filter(Boolean).join(' · ') || '位置未知',
-          relativeLocation: item.relativeLocation || '没有具体位置描述',
-          description: item.description || '',
-          timestamp: observation.timestamp,
-        });
+        items.push(makeDisplayItem(observation, item));
         if (items.length >= 6) return items;
       }
     }
@@ -105,6 +109,19 @@ export default {
     this.setData({ focusIndex: Math.max(0, Math.min(2, nextIndex)) });
   },
 
+  itemDetailData(item) {
+    return {
+      statusText: item.name,
+      statusDetail: `${item.place} · ${item.relativeLocation}`,
+      statusMeta: `最后看到 ${relativeTime(item.timestamp)}${item.description ? ` · ${item.description}` : ''}`,
+    };
+  },
+
+  showItemDetails(item) {
+    if (!item) return;
+    this.setData(this.itemDetailData(item));
+  },
+
   setListFocusIndex(nextIndex) {
     const lastIndex = this.data.recentItems.length - 1;
     if (lastIndex < 0) return;
@@ -113,9 +130,7 @@ export default {
     this.setData({
       listFocusIndex,
       listScrollTop: Math.max(0, (listFocusIndex - 1) * 40),
-      statusText: item.name,
-      statusDetail: `${item.place} · ${item.relativeLocation}`,
-      statusMeta: `最后看到 ${relativeTime(item.timestamp)}${item.description ? ` · ${item.description}` : ''}`,
+      ...this.itemDetailData(item),
     });
   },
 
@@ -196,9 +211,7 @@ export default {
       navigationLevel: 'list',
       listFocusIndex,
       listScrollTop: Math.max(0, (listFocusIndex - 1) * 40),
-      statusText: item.name,
-      statusDetail: `${item.place} · ${item.relativeLocation}`,
-      statusMeta: `最后看到 ${relativeTime(item.timestamp)}${item.description ? ` · ${item.description}` : ''}`,
+      ...this.itemDetailData(item),
     });
   },
 
@@ -345,12 +358,7 @@ export default {
       return;
     }
 
-    const description = match.item.description || '';
-    this.setData({
-      statusText: result.name,
-      statusDetail: `${result.location} · ${result.detail}`,
-      statusMeta: `最后看到 ${relativeTime(match.observation.timestamp)}${description ? ` · ${description}` : ''}`,
-    });
+    this.showItemDetails(makeDisplayItem(match.observation, match.item));
   },
 
   stopVoiceSearch() {
@@ -371,11 +379,6 @@ export default {
 
   activateItem(index) {
     const item = this.data.recentItems[index];
-    if (!item) return;
-    this.setData({
-      statusText: item.name,
-      statusDetail: `${item.place} · ${item.relativeLocation}`,
-      statusMeta: `最后看到 ${relativeTime(item.timestamp)}${item.description ? ` · ${item.description}` : ''}`,
-    });
+    this.showItemDetails(item);
   },
 };
