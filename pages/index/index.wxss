@@ -20,7 +20,7 @@
 }
 
 .status-panel {
-  min-height: 64px;
+  min-height: 82px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -63,10 +63,22 @@
 }
 
 .status-text {
-  font-size: 22px;
-  line-height: 26px;
+  font-size: 18px;
+  line-height: 22px;
   font-weight: 500;
   color: var(--color-primary);
+}
+
+.status-detail {
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--color-primary, #40ff5e);
+}
+
+.status-meta {
+  font-size: 10px;
+  line-height: 14px;
+  color: var(--color-primary-60, rgba(64, 255, 94, 0.6));
 }
 
 .button-row {
@@ -107,7 +119,7 @@
 }
 
 .item-list {
-  height: 104px;
+  height: 80px;
   color: var(--color-primary, #40ff5e);
 }
 

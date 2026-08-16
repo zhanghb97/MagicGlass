@@ -3,6 +3,8 @@
     <view class="status-panel">
       <view class="status-label">CURRENT STATUS</view>
       <view class="status-text">{{statusText}}</view>
+      <view class="status-detail" ink:if="{{statusDetail}}">{{statusDetail}}</view>
+      <view class="status-meta" ink:if="{{statusMeta}}">{{statusMeta}}</view>
     </view>
 
     <view class="button-row">

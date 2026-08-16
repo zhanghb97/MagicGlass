@@ -5,7 +5,7 @@ import { analyzePhoto, destroyVisionSession } from '../../services/vision-servic
 import { loadObservations, saveObservation } from '../../services/memory-service.js';
 import { buildSearchResult, findLastSeen } from '../../services/search-service.js';
 import { recognizeOnce, stopRecognition } from '../../services/speech-service.js';
-import { makeObservationId } from '../../utils/time.js';
+import { makeObservationId, relativeTime } from '../../utils/time.js';
 
 const OBSERVATIONS_KEY = 'magic-glass.observations';
 
@@ -28,6 +28,9 @@ function readRecentItems() {
         items.push({
           name,
           place: [observation.scene, observation.placeHint].filter(Boolean).join(' · ') || '位置未知',
+          relativeLocation: item.relativeLocation || '没有具体位置描述',
+          description: item.description || '',
+          timestamp: observation.timestamp,
         });
         if (items.length >= 6) return items;
       }
@@ -42,6 +45,8 @@ function readRecentItems() {
 export default {
   data: {
     statusText: '等待操作',
+    statusDetail: '',
+    statusMeta: '',
     isMemoryActive: false,
     memoryButtonText: '开始记忆',
     recentItems: [],
@@ -104,9 +109,13 @@ export default {
     const lastIndex = this.data.recentItems.length - 1;
     if (lastIndex < 0) return;
     const listFocusIndex = Math.max(0, Math.min(lastIndex, nextIndex));
+    const item = this.data.recentItems[listFocusIndex];
     this.setData({
       listFocusIndex,
       listScrollTop: Math.max(0, (listFocusIndex - 1) * 40),
+      statusText: item.name,
+      statusDetail: `${item.place} · ${item.relativeLocation}`,
+      statusMeta: `最后看到 ${relativeTime(item.timestamp)}${item.description ? ` · ${item.description}` : ''}`,
     });
   },
 
@@ -182,11 +191,14 @@ export default {
       this.data.listFocusIndex,
       this.data.recentItems.length - 1
     );
+    const item = this.data.recentItems[listFocusIndex];
     this.setData({
       navigationLevel: 'list',
       listFocusIndex,
       listScrollTop: Math.max(0, (listFocusIndex - 1) * 40),
-      statusText: '已进入最近物品',
+      statusText: item.name,
+      statusDetail: `${item.place} · ${item.relativeLocation}`,
+      statusMeta: `最后看到 ${relativeTime(item.timestamp)}${item.description ? ` · ${item.description}` : ''}`,
     });
   },
 
@@ -195,6 +207,8 @@ export default {
       navigationLevel: 'menu',
       focusIndex: 2,
       statusText: '已返回一级菜单',
+      statusDetail: '',
+      statusMeta: '',
     });
   },
 
@@ -338,7 +352,9 @@ export default {
     const item = this.data.recentItems[index];
     if (!item) return;
     this.setData({
-      statusText: `已选择：${item.name}`,
+      statusText: item.name,
+      statusDetail: `${item.place} · ${item.relativeLocation}`,
+      statusMeta: `最后看到 ${relativeTime(item.timestamp)}${item.description ? ` · ${item.description}` : ''}`,
     });
   },
 };
