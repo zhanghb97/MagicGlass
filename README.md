@@ -1,4 +1,4 @@
-# 魔镜 MagicGlass v0.5.1
+# 魔镜 MagicGlass v0.6.0
 
 > 在无感知负担下，让用户永远找到东西。
 
@@ -10,10 +10,12 @@ MagicGlass 会返回最近一次可靠观察到钥匙的位置，并给出简短
 
 ## Demo 能力
 
-当前版本：**v0.5.1**
+当前版本：**v0.6.0**
 
 - 手动立即观察
-- 开始记忆后立即观察一次，随后前台每 30 秒周期观察
+- 开始记忆后立即观察一次，随后根据场景稳定度自适应调度
+- 自适应观察：同一场景逐步降频到 60/120/180 秒，移动后视角稳定时快速观察
+- 所有权保守过滤：只保留有个人使用情境依据的物品，他人、公共和归属不明物品不记录
 - 顶部独立显示记忆与识别状态；停止记忆不会中断已经开始的识别
 - 记忆中 10 秒无操作后界面渐隐，单击确认键或眼镜单击键即可唤醒
 - Camera → LanguageModel 多模态场景理解
@@ -119,7 +121,8 @@ speechSynthesis.speak
 wx.setStorageSync
 wx.getStorageSync
 wx.removeStorageSync
-setInterval / clearInterval
+setTimeout / clearTimeout
+enableWorldAwareness / onOrientationStabilityChange
 ```
 
 视觉输入方式参考官方 `samples/capabilities/pages/chat`，存储和语音分别参考 `storage`、`speech` sample。
@@ -161,14 +164,14 @@ npm test
 
 ```bash
 npx --yes --package=node@20 --package=@yodaos-pkg/aix-cli \
-  aix pack . -o MagicGlass-v0.5.1.aix
+  aix pack . -o MagicGlass-v0.6.0.aix
 ```
 
 查看包内容：
 
 ```bash
 npx --yes --package=node@20 --package=@yodaos-pkg/aix-cli \
-  aix list MagicGlass-v0.5.1.aix
+  aix list MagicGlass-v0.6.0.aix
 ```
 
 `.aixignore` 会排除需求文档、测试、npm 开发配置和旧 AIX 文件，避免无关内容进入眼镜安装包。
@@ -179,6 +182,8 @@ npx --yes --package=node@20 --package=@yodaos-pkg/aix-cli \
 
 ```javascript
 CAPTURE_INTERVAL_MS = 30000
+SAME_PLACE_CAPTURE_INTERVALS_MS = [30000, 60000, 120000, 180000]
+MOTION_SETTLE_CAPTURE_DELAY_MS = 2000
 MAX_OBSERVATIONS = 200
 MIN_RELIABLE_CONFIDENCE = 0.55
 DEBUG = true
@@ -214,7 +219,7 @@ MOCK_MODE = false
 3. 查询钥匙，结果必须指向玄关的新位置。
 4. 查询从未观察过的雨伞，应用必须明确回答没有记录。
 5. 重启 Agent，确认历史 Observation 恢复。
-6. 停止记忆并等待超过 30 秒，确认不再调用相机。
+6. 停止记忆并等待超过当前调度间隔，确认不再调用相机。
 7. 分别验证 Camera、LLM、ASR 或 TTS 不可用时应用不会崩溃。
 
 ## 产品原则

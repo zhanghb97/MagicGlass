@@ -2,12 +2,14 @@ import wx from 'wx';
 import { LanguageModel } from 'language-model';
 import { parseVisionResult } from '../utils/json.js';
 
-export const visionPrompt = `你是快速视觉记忆提取器。只记录画面中最值得之后寻找的关键物品，最多 5 个。
+export const visionPrompt = `你是快速视觉记忆提取器。只记录画面中最值得之后寻找的、属于使用者本人的关键物品，最多 5 个。
 优先：钥匙、手机、钱包、眼镜、包、耳机、遥控器、证件/文件、药品、常用工具等可移动且容易忘记位置的物品。
+只有在随身携带、个人工位或明确个人使用情境中有足够视觉依据时，ownership 才输出 "user"。
+他人正在穿戴/手持的物品输出 "other"；公共、共享或无法判断归属的物品输出 "unknown"。不得猜测所有权。
 忽略：墙地面、家具、固定设施、装饰、普通杂物和不值得寻找的背景内容。宁可少记，不要凑数或虚构。
 物品名简短；aliases 最多 2 个；description 最多 10 个字；relativeLocation 最多 12 个字。
 只输出严格 JSON，不要 Markdown，不要解释：
-{"scene":"场景","placeHint":"语义地点","items":[{"name":"物品名","aliases":["别名"],"description":"极短外观","relativeLocation":"极短相对位置","confidence":0.0}]}`;
+{"scene":"场景","placeHint":"语义地点","items":[{"name":"物品名","aliases":["别名"],"description":"极短外观","relativeLocation":"极短相对位置","confidence":0.0,"ownership":"user|other|unknown"}]}`;
 
 let session = null;
 

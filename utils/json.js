@@ -41,8 +41,9 @@ export function parseVisionResult(raw) {
       description: cleanString(item && item.description, '', 10),
       relativeLocation: cleanString(item && item.relativeLocation, '画面中', 12),
       confidence: normalizeConfidence(item && item.confidence),
+      ownership: cleanString(item && item.ownership, 'unknown', 8),
     }))
-    .filter((item) => item.name)
+    .filter((item) => item.name && item.ownership === 'user')
     .slice(0, MAX_KEY_ITEMS_PER_CAPTURE);
 
   return {

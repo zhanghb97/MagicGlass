@@ -1,10 +1,15 @@
 import wx from 'wx';
-import { CAPTURE_INTERVAL_MS, UI_IDLE_TIMEOUT_MS } from '../../config/config.js';
+import {
+  CAPTURE_INTERVAL_MS,
+  MOTION_SETTLE_CAPTURE_DELAY_MS,
+  UI_IDLE_TIMEOUT_MS,
+} from '../../config/config.js';
 import { releaseCamera, takePhoto } from '../../services/camera-service.js';
 import { analyzePhoto, destroyVisionSession } from '../../services/vision-service.js';
 import { loadObservations, saveObservation } from '../../services/memory-service.js';
 import { buildSearchResult, findLastSeen } from '../../services/search-service.js';
 import { recognizeOnce, stopRecognition } from '../../services/speech-service.js';
+import { updateCapturePolicy } from '../../services/capture-policy.js';
 import { makeObservationId, relativeTime } from '../../utils/time.js';
 
 const OBSERVATIONS_KEY = 'magic-glass.observations';
@@ -68,10 +73,18 @@ export default {
   onLoad() {
     this.enteredNavigationThisPress = false;
     this.captureTimer = null;
+    this.nextCaptureDelayMs = CAPTURE_INTERVAL_MS;
+    this.lastSceneKey = '';
+    this.samePlaceCount = 0;
+    this.orientationWasUnstable = false;
+    this.captureAfterMovement = false;
     this.sleepTimer = null;
     this.wakeKeyCode = null;
     this.recognition = null;
     this.pageActive = true;
+    if (typeof this.enableWorldAwareness === 'function') {
+      this.enableWorldAwareness();
+    }
     this.refreshItems();
   },
 
@@ -273,6 +286,8 @@ export default {
       this.resetSleepTimer();
     } else {
       this.stopCaptureTimer();
+      this.captureAfterMovement = false;
+      this.orientationWasUnstable = false;
       this.clearSleepTimer();
       if (this.data.screenSleeping) this.setData({ screenSleeping: false });
     }
@@ -308,18 +323,46 @@ export default {
 
   startCaptureTimer() {
     if (!this.pageActive || this.captureTimer) return;
-    this.captureTimer = setInterval(() => {
+    this.captureTimer = setTimeout(() => {
+      this.captureTimer = null;
       this.captureAndRemember();
-    }, CAPTURE_INTERVAL_MS);
+    }, this.nextCaptureDelayMs || CAPTURE_INTERVAL_MS);
+  },
+
+  scheduleCapture(delayMs) {
+    this.stopCaptureTimer();
+    if (!this.pageActive || !this.data.isMemoryActive) return;
+    this.nextCaptureDelayMs = Math.max(1000, Number(delayMs) || CAPTURE_INTERVAL_MS);
+    this.startCaptureTimer();
+  },
+
+  onOrientationStabilityChange(event) {
+    if (!this.data.isMemoryActive) return;
+    const stable = !!(event && event.stable);
+    if (!stable) {
+      this.orientationWasUnstable = true;
+      return;
+    }
+    if (!this.orientationWasUnstable) return;
+    this.orientationWasUnstable = false;
+    if (this.data.captureInProgress || this.data.isListening) {
+      this.captureAfterMovement = true;
+      return;
+    }
+    this.scheduleCapture(MOTION_SETTLE_CAPTURE_DELAY_MS);
   },
 
   stopCaptureTimer() {
-    if (this.captureTimer) clearInterval(this.captureTimer);
+    if (this.captureTimer) clearTimeout(this.captureTimer);
     this.captureTimer = null;
   },
 
   async captureAndRemember() {
-    if (!this.pageActive || !this.data.isMemoryActive || this.data.captureInProgress || this.data.isListening) return;
+    if (!this.pageActive || !this.data.isMemoryActive) return;
+    if (this.data.captureInProgress || this.data.isListening) {
+      this.scheduleCapture(5000);
+      return;
+    }
     this.setData({
       captureInProgress: true,
       isRecognitionActive: true,
@@ -338,16 +381,23 @@ export default {
       const visual = await analyzePhoto(photo);
       if (!this.pageActive) return;
 
-      saveObservation({
-        id: makeObservationId(),
-        timestamp: Date.now(),
-        scene: visual.scene,
-        placeHint: visual.placeHint,
-        summary: visual.summary,
-        location: null,
-        items: visual.items,
-      });
-      this.refreshItems();
+      const policy = updateCapturePolicy(this.lastSceneKey, this.samePlaceCount, visual);
+      this.lastSceneKey = policy.sceneKey;
+      this.samePlaceCount = policy.samePlaceCount;
+      this.nextCaptureDelayMs = policy.nextDelayMs;
+
+      if (visual.items.length > 0) {
+        saveObservation({
+          id: makeObservationId(),
+          timestamp: Date.now(),
+          scene: visual.scene,
+          placeHint: visual.placeHint,
+          summary: visual.summary,
+          location: null,
+          items: visual.items,
+        });
+        this.refreshItems();
+      }
       this.setData({
         statusText: visual.items.length > 0
           ? `记录到 ${visual.items.length} 个物品`
@@ -356,7 +406,7 @@ export default {
     } catch (error) {
       console.error('[MagicGlass] capture failed', error);
       this.setData({
-        statusText: error && error.message ? error.message : '观察失败，30秒后重试',
+        statusText: error && error.message ? error.message : '观察失败，稍后重试',
       });
     } finally {
       this.setData({
@@ -364,6 +414,13 @@ export default {
         isRecognitionActive: this.data.isListening,
         recognitionStatusText: this.data.isListening ? '正在聆听' : '等待识别',
       });
+      if (this.data.isMemoryActive) {
+        const delay = this.captureAfterMovement
+          ? MOTION_SETTLE_CAPTURE_DELAY_MS
+          : this.nextCaptureDelayMs;
+        this.captureAfterMovement = false;
+        this.scheduleCapture(delay);
+      }
     }
   },
 
