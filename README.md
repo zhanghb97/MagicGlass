@@ -1,4 +1,4 @@
-# 魔镜 MagicGlass v0.7.0
+# 魔镜 MagicGlass v0.7.1
 
 > 在无感知负担下，让用户永远找到东西。
 
@@ -10,7 +10,7 @@ MagicGlass 会返回最近一次可靠观察到钥匙的位置，并给出简短
 
 ## Demo 能力
 
-当前版本：**v0.7.0**
+当前版本：**v0.7.1**
 
 - 手动立即观察
 - 开始记忆后立即观察一次，随后根据场景稳定度自适应调度
@@ -19,6 +19,7 @@ MagicGlass 会返回最近一次可靠观察到钥匙的位置，并给出简短
 - 顶部独立显示记忆与识别状态；停止记忆不会中断已经开始的识别
 - 主显示栏默认显示“魔镜”和口号，仅在查找成功或进入最近物品栏时显示物品详情
 - 最近物品使用普通 `view` 裁剪窗口和手动平滑位移，避免原生 `scroll-view` 在熄屏重挂载后偶发消失
+- 熄屏时将最近物品焦点与位移归零；唤醒后优先使用内存快照，再延迟挂载缩略栏
 - 记忆中 10 秒无操作后界面渐隐，单击确认键或眼镜单击键即可唤醒
 - 完全熄屏后从页面树移除功能控件，按键释放并拦截后才恢复，避免唤醒键触发焦点功能
 - 进入熄屏时清除当前焦点并退回一级导航，唤醒后需重新进入导航和选择焦点
@@ -168,14 +169,14 @@ npm test
 
 ```bash
 npx --yes --package=node@20 --package=@yodaos-pkg/aix-cli \
-  aix pack . -o MagicGlass-v0.7.0.aix
+  aix pack . -o MagicGlass-v0.7.1.aix
 ```
 
 查看包内容：
 
 ```bash
 npx --yes --package=node@20 --package=@yodaos-pkg/aix-cli \
-  aix list MagicGlass-v0.7.0.aix
+  aix list MagicGlass-v0.7.1.aix
 ```
 
 `.aixignore` 会排除需求文档、测试、npm 开发配置和旧 AIX 文件，避免无关内容进入眼镜安装包。
