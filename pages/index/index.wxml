@@ -7,16 +7,22 @@
 
     <view class="button-row">
       <button
-        class="nav-button {{focusIndex === 0 ? 'focused' : ''}}"
+        class="nav-button {{navigationLevel === 'menu' && focusIndex === 0 ? 'focused' : ''}}"
         bindtap="toggleMemory"
       >{{memoryButtonText}}</button>
       <button
-        class="nav-button {{focusIndex === 1 ? 'focused' : ''}}"
+        class="nav-button {{navigationLevel === 'menu' && focusIndex === 1 ? 'focused' : ''}}"
         bindtap="findItem"
       >{{isListening ? '正在聆听' : '查找物品'}}</button>
     </view>
 
-    <view class="section-label">RECENT ITEMS</view>
+    <view
+      class="list-entry {{navigationLevel === 'menu' && focusIndex === 2 ? 'focused' : ''}}"
+      bindtap="enterItemList"
+    >
+      <view class="section-label">RECENT ITEMS</view>
+      <view class="entry-meta">{{recentItems.length}} ITEMS · ENTER 浏览</view>
+    </view>
 
     <view class="empty-state" ink:if="{{recentItems.length === 0}}">
       暂无物品记录
@@ -25,12 +31,12 @@
     <scroll-view
       class="item-list"
       scroll-y="true"
-      scroll-into-view="{{activeItemId}}"
+      scroll-top="{{listScrollTop}}"
       ink:if="{{recentItems.length > 0}}"
     >
       <view
         id="item-{{index}}"
-        class="item-row {{focusIndex === index + 2 ? 'focused' : ''}}"
+        class="item-row {{navigationLevel === 'list' && listFocusIndex === index ? 'focused' : ''}}"
         ink:for="{{recentItems}}"
         ink:key="name"
         data-index="{{index}}"
@@ -41,6 +47,11 @@
       </view>
     </scroll-view>
 
-    <view class="navigation-hint">ENTER 进入/确认 · UP/DOWN 移动 · BACK 返回</view>
+    <view class="navigation-hint" ink:if="{{navigationLevel === 'menu'}}">
+      一级菜单 · ENTER 进入/确认 · UP/DOWN 移动
+    </view>
+    <view class="navigation-hint" ink:if="{{navigationLevel === 'list'}}">
+      最近物品 · UP/DOWN 滚动 · ENTER 选择 · BACK 返回菜单
+    </view>
   </card>
 </view>

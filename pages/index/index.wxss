@@ -31,11 +31,34 @@
 }
 
 .status-label,
-.section-label {
+.section-label,
+.entry-meta {
   font-size: 11px;
   line-height: 14px;
   font-weight: 500;
   letter-spacing: 1px;
+  color: var(--color-text-secondary);
+}
+
+.list-entry {
+  min-height: 36px;
+  padding: 6px 8px;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--border-color-muted);
+  border-radius: 4px;
+  background-color: transparent;
+}
+
+.list-entry.focused {
+  border: 2px solid var(--color-primary);
+  background-color: var(--color-primary-12, rgba(64, 255, 94, 0.12));
+}
+
+.entry-meta {
+  font-size: 10px;
   color: var(--color-text-secondary);
 }
 
@@ -84,7 +107,7 @@
 }
 
 .item-list {
-  height: 120px;
+  height: 104px;
 }
 
 .item-row {

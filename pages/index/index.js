@@ -46,8 +46,9 @@ export default {
     memoryButtonText: '开始记忆',
     recentItems: [],
     focusIndex: -1,
-    focusableCount: 2,
-    activeItemId: '',
+    navigationLevel: 'menu',
+    listFocusIndex: 0,
+    listScrollTop: 0,
     captureInProgress: false,
     isListening: false,
   },
@@ -82,18 +83,30 @@ export default {
 
   refreshItems() {
     const recentItems = readRecentItems();
-    this.setData({
-      recentItems,
-      focusableCount: recentItems.length + 2,
-    });
+    const update = { recentItems };
+    if (recentItems.length === 0 && this.data.navigationLevel === 'list') {
+      update.navigationLevel = 'menu';
+      update.focusIndex = 2;
+      update.listFocusIndex = 0;
+      update.listScrollTop = 0;
+    } else if (this.data.listFocusIndex >= recentItems.length && recentItems.length > 0) {
+      update.listFocusIndex = recentItems.length - 1;
+      update.listScrollTop = Math.max(0, (recentItems.length - 2) * 40);
+    }
+    this.setData(update);
   },
 
   setFocusIndex(nextIndex) {
-    const count = Math.max(2, this.data.focusableCount);
-    const focusIndex = Math.max(0, Math.min(count - 1, nextIndex));
+    this.setData({ focusIndex: Math.max(0, Math.min(2, nextIndex)) });
+  },
+
+  setListFocusIndex(nextIndex) {
+    const lastIndex = this.data.recentItems.length - 1;
+    if (lastIndex < 0) return;
+    const listFocusIndex = Math.max(0, Math.min(lastIndex, nextIndex));
     this.setData({
-      focusIndex,
-      activeItemId: focusIndex >= 2 ? `item-${focusIndex - 2}` : '',
+      listFocusIndex,
+      listScrollTop: Math.max(0, (listFocusIndex - 1) * 40),
     });
   },
 
@@ -107,14 +120,30 @@ export default {
     }
 
     if (code === 'ArrowDown') {
-      this.setFocusIndex(this.data.focusIndex < 0 ? 0 : this.data.focusIndex + 1);
+      if (this.data.navigationLevel === 'list') {
+        this.setListFocusIndex(this.data.listFocusIndex + 1);
+      } else {
+        this.setFocusIndex(this.data.focusIndex < 0 ? 0 : this.data.focusIndex + 1);
+      }
     } else if (code === 'ArrowUp') {
-      this.setFocusIndex(this.data.focusIndex < 0 ? 0 : this.data.focusIndex - 1);
+      if (this.data.navigationLevel === 'list') {
+        this.setListFocusIndex(this.data.listFocusIndex - 1);
+      } else {
+        this.setFocusIndex(this.data.focusIndex < 0 ? 0 : this.data.focusIndex - 1);
+      }
     }
   },
 
   onKeyUp(event) {
     const code = event && event.code;
+    if (code === 'Backspace') {
+      if (this.data.navigationLevel === 'list') {
+        if (event && typeof event.preventDefault === 'function') event.preventDefault();
+        this.exitItemList();
+      }
+      return;
+    }
+
     if (code !== 'Enter' && code !== 'ArrowUp' && code !== 'ArrowDown') return;
 
     if (event && typeof event.preventDefault === 'function') {
@@ -126,18 +155,47 @@ export default {
       this.enteredNavigationThisPress = false;
       return;
     }
-    this.activateFocused();
+    if (this.data.navigationLevel === 'list') {
+      this.activateItem(this.data.listFocusIndex);
+    } else {
+      this.activateMenuItem();
+    }
   },
 
-  activateFocused() {
+  activateMenuItem() {
     const index = this.data.focusIndex;
     if (index === 0) {
       this.toggleMemory();
     } else if (index === 1) {
       this.findItem();
-    } else if (index >= 2) {
-      this.activateItem(index - 2);
+    } else if (index === 2) {
+      this.enterItemList();
     }
+  },
+
+  enterItemList() {
+    if (this.data.recentItems.length === 0) {
+      this.setData({ statusText: '暂无物品记录' });
+      return;
+    }
+    const listFocusIndex = Math.min(
+      this.data.listFocusIndex,
+      this.data.recentItems.length - 1
+    );
+    this.setData({
+      navigationLevel: 'list',
+      listFocusIndex,
+      listScrollTop: Math.max(0, (listFocusIndex - 1) * 40),
+      statusText: '已进入最近物品',
+    });
+  },
+
+  exitItemList() {
+    this.setData({
+      navigationLevel: 'menu',
+      focusIndex: 2,
+      statusText: '已返回一级菜单',
+    });
   },
 
   toggleMemory() {
@@ -270,7 +328,8 @@ export default {
     const attributes = (event && event.currentTarget && event.currentTarget.attributes) || {};
     const index = Number(attributes['data-index']);
     if (Number.isInteger(index)) {
-      this.setFocusIndex(index + 2);
+      this.setData({ navigationLevel: 'list' });
+      this.setListFocusIndex(index);
       this.activateItem(index);
     }
   },
@@ -280,7 +339,6 @@ export default {
     if (!item) return;
     this.setData({
       statusText: `已选择：${item.name}`,
-      activeItemId: `item-${index}`,
     });
   },
 };
