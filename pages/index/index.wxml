@@ -1,5 +1,10 @@
 <view class="container">
   <card class="main-card" role="navigation">
+    <view class="memory-indicator" ink:if="{{isMemoryActive}}">
+      <view class="memory-dot"></view>
+      <view class="memory-label">正在记忆</view>
+    </view>
+
     <view class="status-panel">
       <view class="status-label">CURRENT STATUS</view>
       <view class="status-text">{{statusText}}</view>
