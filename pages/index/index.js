@@ -62,7 +62,7 @@ export default {
     isMemoryActive: false,
     memoryButtonText: '开始记忆',
     recentItems: [],
-    recentItemsVisible: true,
+    controlsEnabled: true,
     focusIndex: -1,
     navigationLevel: 'menu',
     listFocusIndex: 0,
@@ -85,7 +85,6 @@ export default {
     this.captureAfterMovement = false;
     this.sleepTimer = null;
     this.screenFadeTimer = null;
-    this.recentItemsRestoreTimer = null;
     this.wakeSuppressionTimer = null;
     this.suppressNextActivation = false;
     this.wakeKeyCode = null;
@@ -111,10 +110,13 @@ export default {
     this.stopCaptureTimer();
     this.clearSleepTimer();
     this.clearScreenFadeTimer();
-    this.clearRecentItemsRestoreTimer();
     this.clearWakeSuppression();
     if (this.data.screenSleeping || this.data.screenFading) {
-      this.setData({ screenSleeping: false, screenFading: false });
+      this.setData({
+        screenSleeping: false,
+        screenFading: false,
+        controlsEnabled: true,
+      });
     }
     this.stopVoiceSearch();
   },
@@ -124,7 +126,6 @@ export default {
     this.stopCaptureTimer();
     this.clearSleepTimer();
     this.clearScreenFadeTimer();
-    this.clearRecentItemsRestoreTimer();
     this.clearWakeSuppression();
     this.stopVoiceSearch();
     destroyVisionSession();
@@ -133,7 +134,7 @@ export default {
 
   refreshItems() {
     const recentItems = readRecentItems();
-    const update = { recentItems, recentItemsVisible: true };
+    const update = { recentItems };
     if (recentItems.length === 0 && this.data.navigationLevel === 'list') {
       update.navigationLevel = 'menu';
       update.focusIndex = 2;
@@ -331,37 +332,16 @@ export default {
     this.screenFadeTimer = null;
   },
 
-  clearRecentItemsRestoreTimer() {
-    if (this.recentItemsRestoreTimer) clearTimeout(this.recentItemsRestoreTimer);
-    this.recentItemsRestoreTimer = null;
-  },
-
-  restoreRecentItemsAfterWake(itemsSnapshot) {
-    this.clearRecentItemsRestoreTimer();
-    this.recentItemsRestoreTimer = setTimeout(() => {
-      this.recentItemsRestoreTimer = null;
-      if (!this.pageActive || this.data.screenSleeping) return;
-      const storedItems = readRecentItems();
-      const recentItems = storedItems.length > 0 ? storedItems : itemsSnapshot;
-      this.setData({
-        recentItems,
-        recentItemsVisible: true,
-        listFocusIndex: 0,
-        listScrollTop: 0,
-      });
-    }, 120);
-  },
-
   enterScreenSleep() {
     this.enteredNavigationThisPress = false;
     this.setData({
       screenFading: false,
       screenSleeping: true,
+      controlsEnabled: false,
       navigationLevel: 'menu',
       focusIndex: -1,
       listFocusIndex: 0,
       listScrollTop: 0,
-      recentItemsVisible: false,
       ...DEFAULT_DISPLAY,
     });
   },
@@ -395,19 +375,14 @@ export default {
     this.clearSleepTimer();
     this.clearScreenFadeTimer();
     if (wasDormant) {
-      const itemsSnapshot = Array.isArray(this.data.recentItems)
-        ? [...this.data.recentItems]
-        : [];
       this.setData({
         screenSleeping: false,
         screenFading: false,
-        recentItems: itemsSnapshot,
-        recentItemsVisible: false,
+        controlsEnabled: true,
         listFocusIndex: 0,
         listScrollTop: 0,
       });
       this.armWakeSuppression();
-      this.restoreRecentItemsAfterWake(itemsSnapshot);
     }
     if (this.pageActive && this.data.isMemoryActive) this.resetSleepTimer();
   },

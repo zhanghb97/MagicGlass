@@ -1,6 +1,6 @@
 <view class="container {{screenSleeping || screenFading ? 'screen-sleeping' : ''}}" bindtap="noteUserActivity">
   <view class="sleep-wake-layer" catchtap="wakeScreen" ink:if="{{screenSleeping || screenFading}}"></view>
-  <card class="main-card" role="navigation" ink:if="{{!screenSleeping}}">
+  <card class="main-card" role="{{controlsEnabled ? 'navigation' : 'group'}}">
     <view class="activity-statuses">
       <view class="activity-status recognition-indicator">
         <view class="activity-label">{{recognitionStatusText}}</view>
@@ -23,7 +23,7 @@
       <view class="status-meta" ink:if="{{statusMeta}}">{{statusMeta}}</view>
     </view>
 
-    <view class="button-row">
+    <view class="button-row" ink:if="{{controlsEnabled}}">
       <button
         class="nav-button {{navigationLevel === 'menu' && focusIndex === 0 ? 'focused' : ''}}"
         bindtap="toggleMemory"
@@ -37,18 +37,19 @@
     <view
       class="list-entry {{navigationLevel === 'menu' && focusIndex === 2 ? 'focused' : ''}}"
       bindtap="enterItemList"
+      ink:if="{{controlsEnabled}}"
     >
       <view class="section-label">RECENT ITEMS</view>
       <view class="entry-meta">{{recentItems.length}} ITEMS · ENTER 浏览</view>
     </view>
 
-    <view class="empty-state" ink:if="{{recentItemsVisible && recentItems.length === 0}}">
+    <view class="empty-state" ink:if="{{recentItems.length === 0}}">
       暂无物品记录
     </view>
 
     <view
       class="item-list"
-      ink:if="{{recentItemsVisible && recentItems.length > 0}}"
+      ink:if="{{recentItems.length > 0}}"
     >
       <view class="item-list-track" style="transform: translateY(-{{listScrollTop}}px);">
         <view
@@ -65,10 +66,10 @@
       </view>
     </view>
 
-    <view class="navigation-hint" ink:if="{{navigationLevel === 'menu'}}">
+    <view class="navigation-hint" ink:if="{{controlsEnabled && navigationLevel === 'menu'}}">
       一级菜单 · ENTER 进入/确认 · UP/DOWN 移动
     </view>
-    <view class="navigation-hint" ink:if="{{navigationLevel === 'list'}}">
+    <view class="navigation-hint" ink:if="{{controlsEnabled && navigationLevel === 'list'}}">
       最近物品 · UP/DOWN 滚动 · ENTER 选择 · BACK 返回菜单
     </view>
   </card>
