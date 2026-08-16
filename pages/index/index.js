@@ -67,6 +67,7 @@ export default {
     isListening: false,
     recognitionStatusText: '等待识别',
     isRecognitionActive: false,
+    screenFading: false,
     screenSleeping: false,
   },
 
@@ -79,6 +80,7 @@ export default {
     this.orientationWasUnstable = false;
     this.captureAfterMovement = false;
     this.sleepTimer = null;
+    this.screenFadeTimer = null;
     this.wakeSuppressionTimer = null;
     this.suppressNextActivation = false;
     this.wakeKeyCode = null;
@@ -103,8 +105,11 @@ export default {
     this.pageActive = false;
     this.stopCaptureTimer();
     this.clearSleepTimer();
+    this.clearScreenFadeTimer();
     this.clearWakeSuppression();
-    if (this.data.screenSleeping) this.setData({ screenSleeping: false });
+    if (this.data.screenSleeping || this.data.screenFading) {
+      this.setData({ screenSleeping: false, screenFading: false });
+    }
     this.stopVoiceSearch();
   },
 
@@ -112,6 +117,7 @@ export default {
     this.pageActive = false;
     this.stopCaptureTimer();
     this.clearSleepTimer();
+    this.clearScreenFadeTimer();
     this.clearWakeSuppression();
     this.stopVoiceSearch();
     destroyVisionSession();
@@ -164,10 +170,13 @@ export default {
 
   onKeyDown(event) {
     const code = event && event.code;
-    if (this.data.screenSleeping) {
+    if (this.data.screenSleeping || this.data.screenFading) {
       if (code === 'Enter' || code === 'GlobalHook') {
         this.wakeKeyCode = code;
-        this.wakeScreen();
+        if (this.data.screenFading) {
+          this.clearScreenFadeTimer();
+          this.setData({ screenFading: false, screenSleeping: true });
+        }
       }
       return;
     }
@@ -200,14 +209,17 @@ export default {
     if (this.wakeKeyCode === code) {
       this.wakeKeyCode = null;
       if (event && typeof event.preventDefault === 'function') event.preventDefault();
+      this.wakeScreen();
       return;
     }
-    if (this.data.screenSleeping && (code === 'Enter' || code === 'GlobalHook')) {
+    if ((this.data.screenSleeping || this.data.screenFading)
+      && (code === 'Enter' || code === 'GlobalHook')) {
       if (event && typeof event.preventDefault === 'function') event.preventDefault();
       this.wakeScreen();
       return;
     }
-    if (this.data.screenSleeping && (code === 'ArrowUp' || code === 'ArrowDown')) {
+    if ((this.data.screenSleeping || this.data.screenFading)
+      && (code === 'ArrowUp' || code === 'ArrowDown')) {
       if (event && typeof event.preventDefault === 'function') event.preventDefault();
       return;
     }
@@ -295,7 +307,10 @@ export default {
       this.captureAfterMovement = false;
       this.orientationWasUnstable = false;
       this.clearSleepTimer();
-      if (this.data.screenSleeping) this.setData({ screenSleeping: false });
+      this.clearScreenFadeTimer();
+      if (this.data.screenSleeping || this.data.screenFading) {
+        this.setData({ screenSleeping: false, screenFading: false });
+      }
     }
   },
 
@@ -304,28 +319,41 @@ export default {
     this.sleepTimer = null;
   },
 
+  clearScreenFadeTimer() {
+    if (this.screenFadeTimer) clearTimeout(this.screenFadeTimer);
+    this.screenFadeTimer = null;
+  },
+
   resetSleepTimer() {
     this.clearSleepTimer();
-    if (!this.pageActive || !this.data.isMemoryActive || this.data.screenSleeping) return;
+    if (!this.pageActive || !this.data.isMemoryActive
+      || this.data.screenSleeping || this.data.screenFading) return;
     this.sleepTimer = setTimeout(() => {
       this.sleepTimer = null;
       if (this.pageActive && this.data.isMemoryActive) {
-        this.setData({ screenSleeping: true });
+        this.setData({ screenFading: true });
+        this.screenFadeTimer = setTimeout(() => {
+          this.screenFadeTimer = null;
+          if (this.pageActive && this.data.isMemoryActive) {
+            this.setData({ screenFading: false, screenSleeping: true });
+          }
+        }, 1200);
       }
     }, UI_IDLE_TIMEOUT_MS);
   },
 
   noteUserActivity() {
-    if (this.data.isMemoryActive && !this.data.screenSleeping) {
+    if (this.data.isMemoryActive && !this.data.screenSleeping && !this.data.screenFading) {
       this.resetSleepTimer();
     }
   },
 
   wakeScreen() {
-    const wasSleeping = this.data.screenSleeping;
+    const wasDormant = this.data.screenSleeping || this.data.screenFading;
     this.clearSleepTimer();
-    if (wasSleeping) {
-      this.setData({ screenSleeping: false });
+    this.clearScreenFadeTimer();
+    if (wasDormant) {
+      this.setData({ screenSleeping: false, screenFading: false });
       this.armWakeSuppression();
     }
     if (this.pageActive && this.data.isMemoryActive) this.resetSleepTimer();
