@@ -1,8 +1,14 @@
 <view class="container">
   <card class="main-card" role="navigation">
-    <view class="memory-indicator" ink:if="{{isMemoryActive}}">
-      <view class="memory-dot"></view>
-      <view class="memory-label">正在记忆</view>
+    <view class="activity-statuses">
+      <view class="activity-status recognition-indicator">
+        <view class="recognition-spinner" ink:if="{{isRecognitionActive}}"></view>
+        <view class="activity-label">{{recognitionStatusText}}</view>
+      </view>
+      <view class="activity-status memory-indicator">
+        <view class="memory-dot" ink:if="{{isMemoryActive}}"></view>
+        <view class="activity-label">{{isMemoryActive ? '正在记忆' : '等待记忆'}}</view>
+      </view>
     </view>
 
     <view class="status-panel">

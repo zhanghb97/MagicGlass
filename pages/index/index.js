@@ -60,6 +60,8 @@ export default {
     listScrollTop: 0,
     captureInProgress: false,
     isListening: false,
+    recognitionStatusText: '等待识别',
+    isRecognitionActive: false,
   },
 
   onLoad() {
@@ -256,16 +258,21 @@ export default {
     if (!this.pageActive || !this.data.isMemoryActive || this.data.captureInProgress || this.data.isListening) return;
     this.setData({
       captureInProgress: true,
+      isRecognitionActive: true,
+      recognitionStatusText: '正在拍照',
       statusText: '正在拍照',
     });
 
     try {
       const photo = await takePhoto();
-      if (!this.pageActive || !this.data.isMemoryActive) return;
-      this.setData({ statusText: '正在识别物品' });
+      if (!this.pageActive) return;
+      this.setData({
+        recognitionStatusText: '正在识别',
+        statusText: '正在识别物品',
+      });
 
       const visual = await analyzePhoto(photo);
-      if (!this.pageActive || !this.data.isMemoryActive) return;
+      if (!this.pageActive) return;
 
       saveObservation({
         id: makeObservationId(),
@@ -288,7 +295,11 @@ export default {
         statusText: error && error.message ? error.message : '观察失败，30秒后重试',
       });
     } finally {
-      this.setData({ captureInProgress: false });
+      this.setData({
+        captureInProgress: false,
+        isRecognitionActive: this.data.isListening,
+        recognitionStatusText: this.data.isListening ? '正在聆听' : '等待识别',
+      });
     }
   },
 
@@ -304,6 +315,8 @@ export default {
         onStart: () => {
           this.setData({
             isListening: true,
+            isRecognitionActive: true,
+            recognitionStatusText: '正在聆听',
             statusText: '请说出物品名称',
             statusDetail: '',
             statusMeta: '',
@@ -315,6 +328,8 @@ export default {
         onError: (message) => {
           this.setData({
             isListening: false,
+            isRecognitionActive: false,
+            recognitionStatusText: '等待识别',
             statusText: message ? `语音识别失败：${message}` : '语音识别失败',
             statusDetail: '',
             statusMeta: '',
@@ -322,13 +337,19 @@ export default {
         },
         onEnd: () => {
           this.recognition = null;
-          this.setData({ isListening: false });
+          this.setData({
+            isListening: false,
+            isRecognitionActive: false,
+            recognitionStatusText: '等待识别',
+          });
         },
       });
     } catch (error) {
       this.recognition = null;
       this.setData({
         isListening: false,
+        isRecognitionActive: false,
+        recognitionStatusText: '等待识别',
         statusText: error && error.message ? error.message : '语音识别暂时不可用',
         statusDetail: '',
         statusMeta: '',
@@ -364,7 +385,13 @@ export default {
   stopVoiceSearch() {
     stopRecognition(this.recognition);
     this.recognition = null;
-    if (this.data.isListening) this.setData({ isListening: false });
+    if (this.data.isListening || this.data.isRecognitionActive) {
+      this.setData({
+        isListening: false,
+        isRecognitionActive: this.data.captureInProgress,
+        recognitionStatusText: this.data.captureInProgress ? '正在识别' : '等待识别',
+      });
+    }
   },
 
   selectItem(event) {

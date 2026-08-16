@@ -20,14 +20,22 @@
   background-color: var(--color-background);
 }
 
-.memory-indicator {
+.activity-statuses {
   position: absolute;
   top: 12px;
   right: 12px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 12px;
   z-index: 2;
+}
+
+.activity-status {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
 }
 
 .memory-dot {
@@ -38,12 +46,22 @@
   animation: memory-breathe 4s ease-in-out infinite;
 }
 
-.memory-label {
+.activity-label {
   font-size: 11px;
   line-height: 14px;
   font-weight: 500;
   letter-spacing: 1px;
   color: var(--color-primary, #40ff5e);
+}
+
+.recognition-spinner {
+  width: 8px;
+  height: 8px;
+  box-sizing: border-box;
+  border: 1px solid var(--color-primary-24, rgba(64, 255, 94, 0.24));
+  border-top-color: var(--color-primary, #40ff5e);
+  border-radius: 9999px;
+  animation: recognition-spin 800ms linear infinite;
 }
 
 @keyframes memory-breathe {
@@ -58,14 +76,24 @@
   }
 }
 
+@keyframes recognition-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
 .status-panel {
   min-height: 82px;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 4px;
   padding: 8px 12px;
-  padding-right: 112px;
+  padding-top: 28px;
   border-left: 2px solid var(--color-primary);
   background-color: var(--color-primary-06, rgba(64, 255, 94, 0.06));
 }
