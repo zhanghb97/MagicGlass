@@ -79,6 +79,8 @@ export default {
     this.orientationWasUnstable = false;
     this.captureAfterMovement = false;
     this.sleepTimer = null;
+    this.wakeSuppressionTimer = null;
+    this.suppressNextActivation = false;
     this.wakeKeyCode = null;
     this.recognition = null;
     this.pageActive = true;
@@ -101,6 +103,7 @@ export default {
     this.pageActive = false;
     this.stopCaptureTimer();
     this.clearSleepTimer();
+    this.clearWakeSuppression();
     if (this.data.screenSleeping) this.setData({ screenSleeping: false });
     this.stopVoiceSearch();
   },
@@ -109,6 +112,7 @@ export default {
     this.pageActive = false;
     this.stopCaptureTimer();
     this.clearSleepTimer();
+    this.clearWakeSuppression();
     this.stopVoiceSearch();
     destroyVisionSession();
     releaseCamera();
@@ -246,6 +250,7 @@ export default {
   },
 
   enterItemList() {
+    if (this.consumeWakeActivation()) return;
     if (this.data.recentItems.length === 0) {
       this.setData({ statusText: '暂无物品记录' });
       return;
@@ -274,6 +279,7 @@ export default {
   },
 
   toggleMemory() {
+    if (this.consumeWakeActivation()) return;
     const isMemoryActive = !this.data.isMemoryActive;
     this.setData({
       isMemoryActive,
@@ -316,9 +322,35 @@ export default {
   },
 
   wakeScreen() {
+    const wasSleeping = this.data.screenSleeping;
     this.clearSleepTimer();
-    if (this.data.screenSleeping) this.setData({ screenSleeping: false });
+    if (wasSleeping) {
+      this.setData({ screenSleeping: false });
+      this.armWakeSuppression();
+    }
     if (this.pageActive && this.data.isMemoryActive) this.resetSleepTimer();
+  },
+
+  armWakeSuppression() {
+    this.clearWakeSuppression();
+    this.suppressNextActivation = true;
+    this.wakeSuppressionTimer = setTimeout(() => {
+      this.wakeSuppressionTimer = null;
+      this.suppressNextActivation = false;
+    }, 400);
+  },
+
+  clearWakeSuppression() {
+    if (this.wakeSuppressionTimer) clearTimeout(this.wakeSuppressionTimer);
+    this.wakeSuppressionTimer = null;
+    this.suppressNextActivation = false;
+  },
+
+  consumeWakeActivation() {
+    if (!this.suppressNextActivation) return false;
+    this.clearWakeSuppression();
+    this.noteUserActivity();
+    return true;
   },
 
   startCaptureTimer() {
@@ -425,6 +457,7 @@ export default {
   },
 
   findItem() {
+    if (this.consumeWakeActivation()) return;
     if (this.data.isListening) return;
     if (this.data.captureInProgress) {
       this.setData({ statusText: '正在记录物品，请稍后查找' });
@@ -516,6 +549,7 @@ export default {
   },
 
   selectItem(event) {
+    if (this.consumeWakeActivation()) return;
     const attributes = (event && event.currentTarget && event.currentTarget.attributes) || {};
     const index = Number(attributes['data-index']);
     if (Number.isInteger(index)) {
