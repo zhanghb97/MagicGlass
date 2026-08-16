@@ -292,6 +292,8 @@ export default {
           this.setData({
             isListening: true,
             statusText: '请说出物品名称',
+            statusDetail: '',
+            statusMeta: '',
           });
         },
         onResult: (transcript) => {
@@ -301,6 +303,8 @@ export default {
           this.setData({
             isListening: false,
             statusText: message ? `语音识别失败：${message}` : '语音识别失败',
+            statusDetail: '',
+            statusMeta: '',
           });
         },
         onEnd: () => {
@@ -313,6 +317,8 @@ export default {
       this.setData({
         isListening: false,
         statusText: error && error.message ? error.message : '语音识别暂时不可用',
+        statusDetail: '',
+        statusMeta: '',
       });
     }
   },
@@ -320,15 +326,30 @@ export default {
   showItemLocation(transcript) {
     const query = typeof transcript === 'string' ? transcript.trim() : '';
     if (!query) {
-      this.setData({ statusText: '没有听清物品名称' });
+      this.setData({
+        statusText: '没有听清物品名称',
+        statusDetail: '',
+        statusMeta: '',
+      });
       return;
     }
 
-    const result = buildSearchResult(findLastSeen(loadObservations(), query), query);
+    const match = findLastSeen(loadObservations(), query);
+    const result = buildSearchResult(match, query);
+    if (!result.found) {
+      this.setData({
+        statusText: `没有${result.name}的位置记录`,
+        statusDetail: '',
+        statusMeta: '',
+      });
+      return;
+    }
+
+    const description = match.item.description || '';
     this.setData({
-      statusText: result.found
-        ? `${result.name}：${result.location} · ${result.detail}`
-        : `没有${result.name}的位置记录`,
+      statusText: result.name,
+      statusDetail: `${result.location} · ${result.detail}`,
+      statusMeta: `最后看到 ${relativeTime(match.observation.timestamp)}${description ? ` · ${description}` : ''}`,
     });
   },
 
