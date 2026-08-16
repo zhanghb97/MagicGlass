@@ -222,16 +222,15 @@
 
 .item-list {
   height: 80px;
+  width: 100%;
+  box-sizing: border-box;
   overflow: hidden;
   color: var(--color-primary, #40ff5e);
 }
 
-.item-list-track {
-  width: 100%;
-  transition: transform 200ms ease-out;
-}
-
 .item-row {
+  width: 100%;
+  height: 40px;
   min-height: 40px;
   padding: 8px 4px;
   box-sizing: border-box;
@@ -251,12 +250,20 @@
 }
 
 .item-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
   font-size: 14px;
   line-height: 20px;
   color: var(--color-primary, #40ff5e);
 }
 
 .item-place {
+  width: 150px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-align: right;
   font-size: 10px;
   line-height: 14px;
   letter-spacing: 1px;

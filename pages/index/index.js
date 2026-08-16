@@ -56,17 +56,27 @@ function readRecentItems() {
   }
 }
 
+function makeVisibleRecentItems(items, focusIndex = 0) {
+  if (!Array.isArray(items) || items.length === 0) return [];
+  const lastStart = Math.max(0, items.length - 2);
+  const start = Math.max(0, Math.min(focusIndex - 1, lastStart));
+  return items.slice(start, start + 2).map((item, offset) => ({
+    ...item,
+    sourceIndex: start + offset,
+  }));
+}
+
 export default {
   data: {
     ...DEFAULT_DISPLAY,
     isMemoryActive: false,
     memoryButtonText: '开始记忆',
     recentItems: [],
+    visibleRecentItems: [],
     controlsEnabled: true,
     focusIndex: -1,
     navigationLevel: 'menu',
     listFocusIndex: 0,
-    listScrollTop: 0,
     captureInProgress: false,
     isListening: false,
     recognitionStatusText: '等待识别',
@@ -139,11 +149,13 @@ export default {
       update.navigationLevel = 'menu';
       update.focusIndex = 2;
       update.listFocusIndex = 0;
-      update.listScrollTop = 0;
     } else if (this.data.listFocusIndex >= recentItems.length && recentItems.length > 0) {
       update.listFocusIndex = recentItems.length - 1;
-      update.listScrollTop = Math.max(0, (recentItems.length - 2) * 40);
     }
+    const listFocusIndex = update.listFocusIndex === undefined
+      ? this.data.listFocusIndex
+      : update.listFocusIndex;
+    update.visibleRecentItems = makeVisibleRecentItems(recentItems, listFocusIndex);
     this.setData(update);
   },
 
@@ -175,7 +187,7 @@ export default {
     const item = this.data.recentItems[listFocusIndex];
     this.setData({
       listFocusIndex,
-      listScrollTop: Math.max(0, (listFocusIndex - 1) * 40),
+      visibleRecentItems: makeVisibleRecentItems(this.data.recentItems, listFocusIndex),
       ...this.itemDetailData(item),
     });
   },
@@ -285,7 +297,7 @@ export default {
     this.setData({
       navigationLevel: 'list',
       listFocusIndex,
-      listScrollTop: Math.max(0, (listFocusIndex - 1) * 40),
+      visibleRecentItems: makeVisibleRecentItems(this.data.recentItems, listFocusIndex),
       ...this.itemDetailData(item),
     });
   },
@@ -341,7 +353,7 @@ export default {
       navigationLevel: 'menu',
       focusIndex: -1,
       listFocusIndex: 0,
-      listScrollTop: 0,
+      visibleRecentItems: makeVisibleRecentItems(this.data.recentItems, 0),
       ...DEFAULT_DISPLAY,
     });
   },
@@ -380,7 +392,7 @@ export default {
         screenFading: false,
         controlsEnabled: true,
         listFocusIndex: 0,
-        listScrollTop: 0,
+        visibleRecentItems: makeVisibleRecentItems(this.data.recentItems, 0),
       });
       this.armWakeSuppression();
     }

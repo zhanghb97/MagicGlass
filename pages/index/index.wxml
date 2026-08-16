@@ -51,18 +51,16 @@
       class="item-list"
       ink:if="{{recentItems.length > 0}}"
     >
-      <view class="item-list-track" style="transform: translateY(-{{listScrollTop}}px);">
-        <view
-          id="item-{{index}}"
-          class="item-row {{navigationLevel === 'list' && listFocusIndex === index ? 'focused' : ''}}"
-          ink:for="{{recentItems}}"
-          ink:key="name"
-          data-index="{{index}}"
-          bindtap="selectItem"
-        >
-          <view class="item-name">{{item.name}}</view>
-          <view class="item-place">{{item.place}}</view>
-        </view>
+      <view
+        id="item-{{item.sourceIndex}}"
+        class="item-row {{navigationLevel === 'list' && listFocusIndex === item.sourceIndex ? 'focused' : ''}}"
+        ink:for="{{visibleRecentItems}}"
+        ink:key="name"
+        data-index="{{item.sourceIndex}}"
+        bindtap="selectItem"
+      >
+        <view class="item-name">{{item.name}}</view>
+        <view class="item-place">{{item.place}}</view>
       </view>
     </view>
 
