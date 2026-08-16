@@ -42,7 +42,7 @@
       <view class="entry-meta">{{recentItems.length}} ITEMS · ENTER 浏览</view>
     </view>
 
-    <view class="empty-state" ink:if="{{recentItems.length === 0}}">
+    <view class="empty-state" ink:if="{{recentListReady && recentItems.length === 0}}">
       暂无物品记录
     </view>
 
@@ -50,7 +50,7 @@
       class="item-list"
       scroll-y="true"
       scroll-top="{{listScrollTop}}"
-      ink:if="{{recentItems.length > 0}}"
+      ink:if="{{recentListReady && recentItems.length > 0}}"
     >
       <view
         id="item-{{index}}"

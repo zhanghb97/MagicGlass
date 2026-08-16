@@ -53,12 +53,13 @@ function readRecentItems() {
 
 export default {
   data: {
-    statusText: '等待操作',
+    statusText: '等待物品记录',
     statusDetail: '',
     statusMeta: '',
     isMemoryActive: false,
     memoryButtonText: '开始记忆',
     recentItems: [],
+    recentListReady: true,
     focusIndex: -1,
     navigationLevel: 'menu',
     listFocusIndex: 0,
@@ -81,6 +82,7 @@ export default {
     this.captureAfterMovement = false;
     this.sleepTimer = null;
     this.screenFadeTimer = null;
+    this.viewHydrationTimer = null;
     this.wakeSuppressionTimer = null;
     this.suppressNextActivation = false;
     this.wakeKeyCode = null;
@@ -106,6 +108,7 @@ export default {
     this.stopCaptureTimer();
     this.clearSleepTimer();
     this.clearScreenFadeTimer();
+    this.clearViewHydrationTimer();
     this.clearWakeSuppression();
     if (this.data.screenSleeping || this.data.screenFading) {
       this.setData({ screenSleeping: false, screenFading: false });
@@ -118,6 +121,7 @@ export default {
     this.stopCaptureTimer();
     this.clearSleepTimer();
     this.clearScreenFadeTimer();
+    this.clearViewHydrationTimer();
     this.clearWakeSuppression();
     this.stopVoiceSearch();
     destroyVisionSession();
@@ -126,7 +130,7 @@ export default {
 
   refreshItems() {
     const recentItems = readRecentItems();
-    const update = { recentItems };
+    const update = { recentItems, recentListReady: true };
     if (recentItems.length === 0 && this.data.navigationLevel === 'list') {
       update.navigationLevel = 'menu';
       update.focusIndex = 2;
@@ -175,7 +179,7 @@ export default {
         this.wakeKeyCode = code;
         if (this.data.screenFading) {
           this.clearScreenFadeTimer();
-          this.setData({ screenFading: false, screenSleeping: true });
+          this.enterScreenSleep();
         }
       }
       return;
@@ -185,7 +189,6 @@ export default {
     if (code === 'Enter' && this.data.focusIndex < 0) {
       this.enteredNavigationThisPress = true;
       this.setFocusIndex(0);
-      this.setData({ statusText: '已进入导航' });
       return;
     }
 
@@ -264,7 +267,6 @@ export default {
   enterItemList() {
     if (this.consumeWakeActivation()) return;
     if (this.data.recentItems.length === 0) {
-      this.setData({ statusText: '暂无物品记录' });
       return;
     }
     const listFocusIndex = Math.min(
@@ -284,9 +286,6 @@ export default {
     this.setData({
       navigationLevel: 'menu',
       focusIndex: 2,
-      statusText: '已返回一级菜单',
-      statusDetail: '',
-      statusMeta: '',
     });
   },
 
@@ -296,7 +295,6 @@ export default {
     this.setData({
       isMemoryActive,
       memoryButtonText: isMemoryActive ? '停止记忆' : '开始记忆',
-      statusText: isMemoryActive ? '开始记忆' : '停止记忆',
     });
     if (isMemoryActive) {
       this.captureAndRemember();
@@ -324,6 +322,42 @@ export default {
     this.screenFadeTimer = null;
   },
 
+  clearViewHydrationTimer() {
+    if (this.viewHydrationTimer) clearTimeout(this.viewHydrationTimer);
+    this.viewHydrationTimer = null;
+  },
+
+  enterScreenSleep() {
+    this.enteredNavigationThisPress = false;
+    this.setData({
+      screenFading: false,
+      screenSleeping: true,
+      recentListReady: false,
+      navigationLevel: 'menu',
+      focusIndex: -1,
+    });
+  },
+
+  rehydrateRecentList() {
+    this.clearViewHydrationTimer();
+    this.setData({ recentListReady: false });
+    this.viewHydrationTimer = setTimeout(() => {
+      this.viewHydrationTimer = null;
+      if (!this.pageActive || this.data.screenSleeping) return;
+      const recentItems = readRecentItems();
+      const lastIndex = recentItems.length - 1;
+      const listFocusIndex = lastIndex < 0
+        ? 0
+        : Math.min(this.data.listFocusIndex, lastIndex);
+      this.setData({
+        recentItems,
+        recentListReady: true,
+        listFocusIndex,
+        listScrollTop: Math.max(0, (listFocusIndex - 1) * 40),
+      });
+    }, 80);
+  },
+
   resetSleepTimer() {
     this.clearSleepTimer();
     if (!this.pageActive || !this.data.isMemoryActive
@@ -335,7 +369,7 @@ export default {
         this.screenFadeTimer = setTimeout(() => {
           this.screenFadeTimer = null;
           if (this.pageActive && this.data.isMemoryActive) {
-            this.setData({ screenFading: false, screenSleeping: true });
+            this.enterScreenSleep();
           }
         }, 1200);
       }
@@ -353,8 +387,13 @@ export default {
     this.clearSleepTimer();
     this.clearScreenFadeTimer();
     if (wasDormant) {
-      this.setData({ screenSleeping: false, screenFading: false });
+      this.setData({
+        screenSleeping: false,
+        screenFading: false,
+        recentListReady: false,
+      });
       this.armWakeSuppression();
+      this.rehydrateRecentList();
     }
     if (this.pageActive && this.data.isMemoryActive) this.resetSleepTimer();
   },
@@ -427,7 +466,6 @@ export default {
       captureInProgress: true,
       isRecognitionActive: true,
       recognitionStatusText: '正在拍照',
-      statusText: '正在拍照',
     });
 
     try {
@@ -435,7 +473,6 @@ export default {
       if (!this.pageActive) return;
       this.setData({
         recognitionStatusText: '正在识别',
-        statusText: '正在识别物品',
       });
 
       const visual = await analyzePhoto(photo);
@@ -447,7 +484,7 @@ export default {
       this.nextCaptureDelayMs = policy.nextDelayMs;
 
       if (visual.items.length > 0) {
-        saveObservation({
+        const observation = {
           id: makeObservationId(),
           timestamp: Date.now(),
           scene: visual.scene,
@@ -455,19 +492,13 @@ export default {
           summary: visual.summary,
           location: null,
           items: visual.items,
-        });
+        };
+        saveObservation(observation);
         this.refreshItems();
+        this.showItemDetails(makeDisplayItem(observation, visual.items[0]));
       }
-      this.setData({
-        statusText: visual.items.length > 0
-          ? `记录到 ${visual.items.length} 个物品`
-          : '没有识别到物品',
-      });
     } catch (error) {
       console.error('[MagicGlass] capture failed', error);
-      this.setData({
-        statusText: error && error.message ? error.message : '观察失败，稍后重试',
-      });
     } finally {
       this.setData({
         captureInProgress: false,
@@ -488,7 +519,6 @@ export default {
     if (this.consumeWakeActivation()) return;
     if (this.data.isListening) return;
     if (this.data.captureInProgress) {
-      this.setData({ statusText: '正在记录物品，请稍后查找' });
       return;
     }
 
@@ -499,9 +529,6 @@ export default {
             isListening: true,
             isRecognitionActive: true,
             recognitionStatusText: '正在聆听',
-            statusText: '请说出物品名称',
-            statusDetail: '',
-            statusMeta: '',
           });
         },
         onResult: (transcript) => {
@@ -512,9 +539,6 @@ export default {
             isListening: false,
             isRecognitionActive: false,
             recognitionStatusText: '等待识别',
-            statusText: message ? `语音识别失败：${message}` : '语音识别失败',
-            statusDetail: '',
-            statusMeta: '',
           });
         },
         onEnd: () => {
@@ -532,9 +556,6 @@ export default {
         isListening: false,
         isRecognitionActive: false,
         recognitionStatusText: '等待识别',
-        statusText: error && error.message ? error.message : '语音识别暂时不可用',
-        statusDetail: '',
-        statusMeta: '',
       });
     }
   },
@@ -542,22 +563,12 @@ export default {
   showItemLocation(transcript) {
     const query = typeof transcript === 'string' ? transcript.trim() : '';
     if (!query) {
-      this.setData({
-        statusText: '没有听清物品名称',
-        statusDetail: '',
-        statusMeta: '',
-      });
       return;
     }
 
     const match = findLastSeen(loadObservations(), query);
     const result = buildSearchResult(match, query);
     if (!result.found) {
-      this.setData({
-        statusText: `没有${result.name}的位置记录`,
-        statusDetail: '',
-        statusMeta: '',
-      });
       return;
     }
 
