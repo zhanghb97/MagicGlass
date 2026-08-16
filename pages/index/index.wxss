@@ -108,6 +108,7 @@
 
 .item-list {
   height: 104px;
+  color: var(--color-primary, #40ff5e);
 }
 
 .item-row {
@@ -119,6 +120,7 @@
   justify-content: space-between;
   border-bottom: 1px solid var(--border-color-muted);
   background-color: transparent;
+  color: var(--color-primary, #40ff5e);
 }
 
 .item-row.focused {
@@ -131,10 +133,21 @@
 .item-name {
   font-size: 14px;
   line-height: 20px;
-  color: var(--color-text-primary);
+  color: var(--color-primary, #40ff5e);
 }
 
-.item-place,
+.item-place {
+  font-size: 10px;
+  line-height: 14px;
+  letter-spacing: 1px;
+  color: var(--color-primary-60, rgba(64, 255, 94, 0.6));
+}
+
+.item-row.focused .item-name,
+.item-row.focused .item-place {
+  color: var(--color-primary, #40ff5e);
+}
+
 .navigation-hint {
   font-size: 10px;
   line-height: 14px;
