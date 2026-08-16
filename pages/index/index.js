@@ -1,5 +1,5 @@
 import wx from 'wx';
-import { CAPTURE_INTERVAL_MS } from '../../config/config.js';
+import { CAPTURE_INTERVAL_MS, UI_IDLE_TIMEOUT_MS } from '../../config/config.js';
 import { releaseCamera, takePhoto } from '../../services/camera-service.js';
 import { analyzePhoto, destroyVisionSession } from '../../services/vision-service.js';
 import { loadObservations, saveObservation } from '../../services/memory-service.js';
@@ -62,11 +62,14 @@ export default {
     isListening: false,
     recognitionStatusText: '等待识别',
     isRecognitionActive: false,
+    screenSleeping: false,
   },
 
   onLoad() {
     this.enteredNavigationThisPress = false;
     this.captureTimer = null;
+    this.sleepTimer = null;
+    this.wakeKeyCode = null;
     this.recognition = null;
     this.pageActive = true;
     this.refreshItems();
@@ -75,18 +78,24 @@ export default {
   onShow() {
     this.pageActive = true;
     this.refreshItems();
-    if (this.data.isMemoryActive) this.startCaptureTimer();
+    if (this.data.isMemoryActive) {
+      this.startCaptureTimer();
+      this.resetSleepTimer();
+    }
   },
 
   onHide() {
     this.pageActive = false;
     this.stopCaptureTimer();
+    this.clearSleepTimer();
+    if (this.data.screenSleeping) this.setData({ screenSleeping: false });
     this.stopVoiceSearch();
   },
 
   onUnload() {
     this.pageActive = false;
     this.stopCaptureTimer();
+    this.clearSleepTimer();
     this.stopVoiceSearch();
     destroyVisionSession();
     releaseCamera();
@@ -138,6 +147,15 @@ export default {
 
   onKeyDown(event) {
     const code = event && event.code;
+    if (this.data.screenSleeping) {
+      if (code === 'Enter' || code === 'GlobalHook') {
+        this.wakeKeyCode = code;
+        this.wakeScreen();
+      }
+      return;
+    }
+    this.noteUserActivity();
+
     if (code === 'Enter' && this.data.focusIndex < 0) {
       this.enteredNavigationThisPress = true;
       this.setFocusIndex(0);
@@ -162,6 +180,21 @@ export default {
 
   onKeyUp(event) {
     const code = event && event.code;
+    if (this.wakeKeyCode === code) {
+      this.wakeKeyCode = null;
+      if (event && typeof event.preventDefault === 'function') event.preventDefault();
+      return;
+    }
+    if (this.data.screenSleeping && (code === 'Enter' || code === 'GlobalHook')) {
+      if (event && typeof event.preventDefault === 'function') event.preventDefault();
+      this.wakeScreen();
+      return;
+    }
+    if (this.data.screenSleeping && (code === 'ArrowUp' || code === 'ArrowDown')) {
+      if (event && typeof event.preventDefault === 'function') event.preventDefault();
+      return;
+    }
+
     if (code === 'Backspace') {
       if (this.data.navigationLevel === 'list') {
         if (event && typeof event.preventDefault === 'function') event.preventDefault();
@@ -237,9 +270,40 @@ export default {
     if (isMemoryActive) {
       this.captureAndRemember();
       this.startCaptureTimer();
+      this.resetSleepTimer();
     } else {
       this.stopCaptureTimer();
+      this.clearSleepTimer();
+      if (this.data.screenSleeping) this.setData({ screenSleeping: false });
     }
+  },
+
+  clearSleepTimer() {
+    if (this.sleepTimer) clearTimeout(this.sleepTimer);
+    this.sleepTimer = null;
+  },
+
+  resetSleepTimer() {
+    this.clearSleepTimer();
+    if (!this.pageActive || !this.data.isMemoryActive || this.data.screenSleeping) return;
+    this.sleepTimer = setTimeout(() => {
+      this.sleepTimer = null;
+      if (this.pageActive && this.data.isMemoryActive) {
+        this.setData({ screenSleeping: true });
+      }
+    }, UI_IDLE_TIMEOUT_MS);
+  },
+
+  noteUserActivity() {
+    if (this.data.isMemoryActive && !this.data.screenSleeping) {
+      this.resetSleepTimer();
+    }
+  },
+
+  wakeScreen() {
+    this.clearSleepTimer();
+    if (this.data.screenSleeping) this.setData({ screenSleeping: false });
+    if (this.pageActive && this.data.isMemoryActive) this.resetSleepTimer();
   },
 
   startCaptureTimer() {

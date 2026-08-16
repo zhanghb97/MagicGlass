@@ -1,10 +1,26 @@
 .container {
+  position: relative;
   width: 480px;
   min-height: 352px;
   padding: 12px 16px;
   box-sizing: border-box;
   background-color: var(--color-background);
   color: var(--color-text-primary);
+  opacity: 1;
+  transition: opacity 1200ms ease-in-out;
+}
+
+.container.screen-sleeping {
+  opacity: 0;
+}
+
+.sleep-wake-layer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 100;
 }
 
 .main-card {

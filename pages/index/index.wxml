@@ -1,4 +1,5 @@
-<view class="container">
+<view class="container {{screenSleeping ? 'screen-sleeping' : ''}}" bindtap="noteUserActivity">
+  <view class="sleep-wake-layer" catchtap="wakeScreen" ink:if="{{screenSleeping}}"></view>
   <card class="main-card" role="navigation">
     <view class="activity-statuses">
       <view class="activity-status recognition-indicator">
