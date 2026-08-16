@@ -13,6 +13,11 @@ import { updateCapturePolicy } from '../../services/capture-policy.js';
 import { makeObservationId, relativeTime } from '../../utils/time.js';
 
 const OBSERVATIONS_KEY = 'magic-glass.observations';
+const DEFAULT_DISPLAY = {
+  statusText: '魔镜',
+  statusDetail: '在无感知负担下，让用户永远找到东西。',
+  statusMeta: '',
+};
 
 function makeDisplayItem(observation, item) {
   return {
@@ -53,13 +58,10 @@ function readRecentItems() {
 
 export default {
   data: {
-    statusText: '等待物品记录',
-    statusDetail: '',
-    statusMeta: '',
+    ...DEFAULT_DISPLAY,
     isMemoryActive: false,
     memoryButtonText: '开始记忆',
     recentItems: [],
-    recentListReady: true,
     focusIndex: -1,
     navigationLevel: 'menu',
     listFocusIndex: 0,
@@ -82,7 +84,6 @@ export default {
     this.captureAfterMovement = false;
     this.sleepTimer = null;
     this.screenFadeTimer = null;
-    this.viewHydrationTimer = null;
     this.wakeSuppressionTimer = null;
     this.suppressNextActivation = false;
     this.wakeKeyCode = null;
@@ -108,7 +109,6 @@ export default {
     this.stopCaptureTimer();
     this.clearSleepTimer();
     this.clearScreenFadeTimer();
-    this.clearViewHydrationTimer();
     this.clearWakeSuppression();
     if (this.data.screenSleeping || this.data.screenFading) {
       this.setData({ screenSleeping: false, screenFading: false });
@@ -121,7 +121,6 @@ export default {
     this.stopCaptureTimer();
     this.clearSleepTimer();
     this.clearScreenFadeTimer();
-    this.clearViewHydrationTimer();
     this.clearWakeSuppression();
     this.stopVoiceSearch();
     destroyVisionSession();
@@ -130,7 +129,7 @@ export default {
 
   refreshItems() {
     const recentItems = readRecentItems();
-    const update = { recentItems, recentListReady: true };
+    const update = { recentItems };
     if (recentItems.length === 0 && this.data.navigationLevel === 'list') {
       update.navigationLevel = 'menu';
       update.focusIndex = 2;
@@ -158,6 +157,10 @@ export default {
   showItemDetails(item) {
     if (!item) return;
     this.setData(this.itemDetailData(item));
+  },
+
+  showDefaultDisplay() {
+    this.setData(DEFAULT_DISPLAY);
   },
 
   setListFocusIndex(nextIndex) {
@@ -286,11 +289,13 @@ export default {
     this.setData({
       navigationLevel: 'menu',
       focusIndex: 2,
+      ...DEFAULT_DISPLAY,
     });
   },
 
   toggleMemory() {
     if (this.consumeWakeActivation()) return;
+    this.showDefaultDisplay();
     const isMemoryActive = !this.data.isMemoryActive;
     this.setData({
       isMemoryActive,
@@ -322,40 +327,15 @@ export default {
     this.screenFadeTimer = null;
   },
 
-  clearViewHydrationTimer() {
-    if (this.viewHydrationTimer) clearTimeout(this.viewHydrationTimer);
-    this.viewHydrationTimer = null;
-  },
-
   enterScreenSleep() {
     this.enteredNavigationThisPress = false;
     this.setData({
       screenFading: false,
       screenSleeping: true,
-      recentListReady: false,
       navigationLevel: 'menu',
       focusIndex: -1,
+      ...DEFAULT_DISPLAY,
     });
-  },
-
-  rehydrateRecentList() {
-    this.clearViewHydrationTimer();
-    this.setData({ recentListReady: false });
-    this.viewHydrationTimer = setTimeout(() => {
-      this.viewHydrationTimer = null;
-      if (!this.pageActive || this.data.screenSleeping) return;
-      const recentItems = readRecentItems();
-      const lastIndex = recentItems.length - 1;
-      const listFocusIndex = lastIndex < 0
-        ? 0
-        : Math.min(this.data.listFocusIndex, lastIndex);
-      this.setData({
-        recentItems,
-        recentListReady: true,
-        listFocusIndex,
-        listScrollTop: Math.max(0, (listFocusIndex - 1) * 40),
-      });
-    }, 80);
   },
 
   resetSleepTimer() {
@@ -390,10 +370,9 @@ export default {
       this.setData({
         screenSleeping: false,
         screenFading: false,
-        recentListReady: false,
       });
       this.armWakeSuppression();
-      this.rehydrateRecentList();
+      this.refreshItems();
     }
     if (this.pageActive && this.data.isMemoryActive) this.resetSleepTimer();
   },
@@ -495,7 +474,6 @@ export default {
         };
         saveObservation(observation);
         this.refreshItems();
-        this.showItemDetails(makeDisplayItem(observation, visual.items[0]));
       }
     } catch (error) {
       console.error('[MagicGlass] capture failed', error);
@@ -521,6 +499,7 @@ export default {
     if (this.data.captureInProgress) {
       return;
     }
+    this.showDefaultDisplay();
 
     try {
       this.recognition = recognizeOnce({
