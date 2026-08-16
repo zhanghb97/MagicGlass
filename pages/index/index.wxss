@@ -34,8 +34,26 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 5px;
+  justify-content: space-between;
+  gap: 6px;
   white-space: nowrap;
+}
+
+.recognition-indicator {
+  width: 88px;
+}
+
+.memory-indicator {
+  width: 78px;
+}
+
+.activity-icon-slot {
+  width: 14px;
+  height: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .memory-dot {
@@ -43,6 +61,10 @@
   height: 8px;
   border-radius: 9999px;
   background-color: var(--color-primary, #40ff5e);
+  opacity: 0;
+}
+
+.memory-dot.active {
   animation: memory-breathe 4s ease-in-out infinite;
 }
 
@@ -54,14 +76,33 @@
   color: var(--color-primary, #40ff5e);
 }
 
-.recognition-spinner {
-  width: 8px;
+.recognition-pulse {
+  width: 14px;
   height: 8px;
-  box-sizing: border-box;
-  border: 1px solid var(--color-primary-24, rgba(64, 255, 94, 0.24));
-  border-top-color: var(--color-primary, #40ff5e);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  opacity: 0;
+}
+
+.recognition-pulse.active {
+  opacity: 1;
+}
+
+.recognition-pulse-dot {
+  width: 3px;
+  height: 3px;
   border-radius: 9999px;
-  animation: recognition-spin 800ms linear infinite;
+  background-color: var(--color-primary, #40ff5e);
+  animation: recognition-breathe 4s ease-in-out infinite;
+}
+
+.pulse-dot-two {
+  animation-delay: 320ms;
+}
+
+.pulse-dot-three {
+  animation-delay: 640ms;
 }
 
 @keyframes memory-breathe {
@@ -76,26 +117,36 @@
   }
 }
 
-@keyframes recognition-spin {
-  0% {
-    transform: rotate(0deg);
-  }
+@keyframes recognition-breathe {
+  0%,
   100% {
-    transform: rotate(360deg);
+    opacity: 0.24;
+    transform: scale(0.7);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
   }
 }
 
 .status-panel {
+  position: relative;
   min-height: 82px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 4px;
   padding: 8px 12px;
-  padding-top: 28px;
+  padding-top: 30px;
   border-left: 2px solid var(--color-primary);
   background-color: var(--color-primary-06, rgba(64, 255, 94, 0.06));
+}
+
+.status-label {
+  position: absolute;
+  top: 8px;
+  left: 12px;
 }
 
 .status-label,
