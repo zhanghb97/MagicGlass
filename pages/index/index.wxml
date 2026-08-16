@@ -4,17 +4,13 @@
       <view class="activity-status recognition-indicator">
         <view class="activity-label">{{recognitionStatusText}}</view>
         <view class="activity-icon-slot">
-          <view class="recognition-pulse {{isRecognitionActive ? 'active' : ''}}">
-            <view class="recognition-pulse-dot pulse-dot-one"></view>
-            <view class="recognition-pulse-dot pulse-dot-two"></view>
-            <view class="recognition-pulse-dot pulse-dot-three"></view>
-          </view>
+          <view class="status-breathe-dot {{isRecognitionActive ? 'active' : ''}}"></view>
         </view>
       </view>
       <view class="activity-status memory-indicator">
         <view class="activity-label">{{isMemoryActive ? '正在记忆' : '等待记忆'}}</view>
         <view class="activity-icon-slot">
-          <view class="memory-dot {{isMemoryActive ? 'active' : ''}}"></view>
+          <view class="status-breathe-dot {{isMemoryActive ? 'active' : ''}}"></view>
         </view>
       </view>
     </view>
