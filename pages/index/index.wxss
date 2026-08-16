@@ -1,6 +1,7 @@
 .container {
   position: relative;
   width: 480px;
+  height: 352px;
   min-height: 352px;
   padding: 12px 16px;
   box-sizing: border-box;
@@ -8,6 +9,7 @@
   color: var(--color-text-primary);
   opacity: 1;
   transition: opacity 1200ms ease-in-out;
+  overflow: hidden;
 }
 
 .container.screen-sleeping {
@@ -26,14 +28,16 @@
 .main-card {
   position: relative;
   width: 100%;
+  height: 328px;
   padding: 12px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   border: 1px solid var(--border-color-muted);
   border-radius: 6px;
   background-color: var(--color-background);
+  overflow: hidden;
 }
 
 .activity-statuses {
@@ -254,6 +258,9 @@
   min-width: 0;
   overflow: hidden;
   white-space: nowrap;
+  height: 100%;
+  display: flex;
+  align-items: center;
   font-size: 14px;
   line-height: 20px;
   color: var(--color-primary, #40ff5e);
@@ -264,6 +271,10 @@
   overflow: hidden;
   white-space: nowrap;
   text-align: right;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
   font-size: 10px;
   line-height: 14px;
   letter-spacing: 1px;
