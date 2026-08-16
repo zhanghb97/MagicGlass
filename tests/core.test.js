@@ -17,6 +17,21 @@ test('rejects invalid vision output', () => {
   assert.throws(() => parseVisionResult('{"scene":"书房"}'));
 });
 
+test('keeps vision memory compact and limited to key-item payload size', () => {
+  const items = Array.from({ length: 8 }, (_value, index) => ({
+    name: `物品${index}`,
+    aliases: ['别名一', '别名二', '别名三'],
+    description: '超过十个字的外观描述内容',
+    relativeLocation: '超过十二个字的相对位置描述内容',
+    confidence: 0.9,
+  }));
+  const result = parseVisionResult(JSON.stringify({ scene: '书房', placeHint: '书桌', items }));
+  assert.equal(result.items.length, 5);
+  assert.equal(result.items[0].aliases.length, 2);
+  assert.equal(result.items[0].description.length, 10);
+  assert.equal(result.items[0].relativeLocation.length, 12);
+});
+
 test('Last Seen always returns newest reliable match', () => {
   const match = findLastSeen([latest, old], '我的钥匙在哪里？');
   assert.equal(match.observation.timestamp, 200);
@@ -36,4 +51,3 @@ test('query normalization and recent item deduplication work', () => {
   assert.equal(items.length, 2);
   assert.equal(items[0].name, '车钥匙');
 });
-

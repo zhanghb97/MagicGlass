@@ -4,8 +4,8 @@ function stripCodeFence(text) {
   return fenced ? fenced[1].trim() : trimmed;
 }
 
-function cleanString(value, fallback = '') {
-  return typeof value === 'string' ? value.trim() : fallback;
+function cleanString(value, fallback = '', maxLength = Infinity) {
+  return typeof value === 'string' ? value.trim().slice(0, maxLength) : fallback;
 }
 
 function normalizeConfidence(value) {
@@ -36,14 +36,14 @@ export function parseVisionResult(raw) {
     .map((item) => ({
       name: cleanString(item && item.name),
       aliases: Array.isArray(item && item.aliases)
-        ? item.aliases.map((alias) => cleanString(alias)).filter(Boolean).slice(0, 6)
+        ? item.aliases.map((alias) => cleanString(alias, '', 12)).filter(Boolean).slice(0, 2)
         : [],
-      description: cleanString(item && item.description),
-      relativeLocation: cleanString(item && item.relativeLocation, '画面中'),
+      description: cleanString(item && item.description, '', 10),
+      relativeLocation: cleanString(item && item.relativeLocation, '画面中', 12),
       confidence: normalizeConfidence(item && item.confidence),
     }))
     .filter((item) => item.name)
-    .slice(0, 20);
+    .slice(0, MAX_KEY_ITEMS_PER_CAPTURE);
 
   return {
     scene: cleanString(parsed.scene, '未知场景'),
@@ -52,4 +52,4 @@ export function parseVisionResult(raw) {
     items,
   };
 }
-
+import { MAX_KEY_ITEMS_PER_CAPTURE } from '../config/config.js';
