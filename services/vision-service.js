@@ -1,5 +1,6 @@
 import wx from 'wx';
 import { LanguageModel } from 'language-model';
+import { VISION_TIMEOUT_MS } from '../config/config.js';
 import { parseVisionResult } from '../utils/json.js';
 
 export const visionPrompt = `你是快速视觉记忆提取器。只记录画面中最值得之后寻找的、属于使用者本人的关键物品，最多 5 个。
@@ -50,11 +51,22 @@ export async function analyzePhoto(photo) {
       { type: 'image_url', image_url: { url: dataUrl } },
     ],
   }];
-  const currentSession = await getSession();
+  let timeoutId = null;
+  const recognitionTask = (async () => {
+    const currentSession = await getSession();
+    return currentSession.prompt(prompt);
+  })();
+  const timeoutTask = new Promise((_resolve, reject) => {
+    timeoutId = setTimeout(() => {
+      destroyVisionSession();
+      reject(new Error('视觉识别超时'));
+    }, VISION_TIMEOUT_MS);
+  });
   try {
-    const raw = await currentSession.prompt(prompt);
+    const raw = await Promise.race([recognitionTask, timeoutTask]);
     return parseVisionResult(raw);
   } finally {
+    if (timeoutId) clearTimeout(timeoutId);
     destroyVisionSession();
   }
 }

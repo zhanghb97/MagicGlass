@@ -1,4 +1,4 @@
-# 魔镜 MagicGlass v0.7.5
+# 魔镜 MagicGlass v0.7.6
 
 > 在无感知负担下，让用户永远找到东西。
 
@@ -10,7 +10,7 @@ MagicGlass 会返回最近一次可靠观察到钥匙的位置，并给出简短
 
 ## Demo 能力
 
-当前版本：**v0.7.5**
+当前版本：**v0.7.6**
 
 - 手动立即观察
 - 开始记忆后立即观察一次，随后根据场景稳定度自适应调度
@@ -28,6 +28,7 @@ MagicGlass 会返回最近一次可靠观察到钥匙的位置，并给出简短
 - Camera → LanguageModel 多模态场景理解
 - 每轮最多提取 5 个值得寻找的关键物品，忽略背景和普通杂物
 - 每轮视觉识别使用独立会话，避免历史图片累积导致识别越来越慢
+- 视觉识别硬超时为 20 秒，超时后主动销毁模型会话并恢复“等待识别”
 - 场景、语义地点和物品相对位置提取
 - Observation 本地持久化，最多保留 200 条
 - 基于 `name + aliases` 的物品搜索
@@ -171,14 +172,14 @@ npm test
 
 ```bash
 npx --yes --package=node@20 --package=@yodaos-pkg/aix-cli \
-  aix pack . -o MagicGlass-v0.7.5.aix
+  aix pack . -o MagicGlass-v0.7.6.aix
 ```
 
 查看包内容：
 
 ```bash
 npx --yes --package=node@20 --package=@yodaos-pkg/aix-cli \
-  aix list MagicGlass-v0.7.5.aix
+  aix list MagicGlass-v0.7.6.aix
 ```
 
 `.aixignore` 会排除需求文档、测试、npm 开发配置和旧 AIX 文件，避免无关内容进入眼镜安装包。
